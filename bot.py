@@ -3,6 +3,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 import logging
 import os
 import psycopg2
+import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -62,15 +63,18 @@ async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Bot Entry Point ---
 async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("bind", start_bind))
-    app.add_handler(CommandHandler("rank", show_rank))
-    app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-
-    await app.run_polling(close_loop=False)
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    
+    # 添加所有 handler，例如
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("bind", bind))
+    application.add_handler(MessageHandler(filters.CONTACT, contact_handler))
+    application.add_handler(CommandHandler("rank", show_rank))
+    
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    await application.updater.idle()
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
