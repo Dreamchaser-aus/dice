@@ -58,18 +58,23 @@ def admin_dashboard():
     return render_template("admin.html", users=users)
 
 @app.route("/init")
+@app.route("/init")
 def init_tables():
     with get_conn() as conn, conn.cursor() as c:
+        # 创建 users 表
         c.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                user_id BIGINT PRIMARY KEY,
-                username TEXT,
-                phone TEXT,
-                points INTEGER DEFAULT 0,
-                plays INTEGER DEFAULT 0,
-                last_game_time TIMESTAMP
+                user_id BIGINT PRIMARY KEY
             );
         """)
+        # 增加字段（幂等操作）
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plays INTEGER DEFAULT 0;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_game_time TIMESTAMP;")
+
+        # 创建 game_logs 表
         c.execute("""
             CREATE TABLE IF NOT EXISTS game_logs (
                 id SERIAL PRIMARY KEY,
@@ -81,7 +86,7 @@ def init_tables():
             );
         """)
         conn.commit()
-    return "✅ 数据表初始化完成"
+    return "✅ 数据表初始化完成（包含字段补全）"
 
 if __name__ == "__main__":
     app.run(debug=True)
