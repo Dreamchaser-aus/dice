@@ -4,12 +4,44 @@
   <meta charset="UTF-8">
   <title>🎲 骰子游戏</title>
   <style>
-    body { font-family: "Arial", sans-serif; background: #f5f5f5; text-align: center; padding: 40px; }
-    h1 { color: #333; }
-    .dice-area { margin: 20px auto; font-size: 100px; }
-    .score { font-size: 20px; margin: 10px; color: #555; }
-    .result { font-size: 24px; font-weight: bold; margin-top: 20px; }
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f0f0f0; }
+    h1 { margin-bottom: 30px; }
+
+    .dice-box {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      perspective: 1000px;
+    }
+
+    .dice {
+      width: 100px;
+      height: 100px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1s ease;
+    }
+
+    .face {
+      position: absolute;
+      width: 100px; height: 100px;
+      background: white;
+      border: 2px solid #ccc;
+      font-size: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .front  { transform: rotateY(   0deg) translateZ(50px); }
+    .back   { transform: rotateY( 180deg) translateZ(50px); }
+    .right  { transform: rotateY(  90deg) translateZ(50px); }
+    .left   { transform: rotateY( -90deg) translateZ(50px); }
+    .top    { transform: rotateX(  90deg) translateZ(50px); }
+    .bottom { transform: rotateX( -90deg) translateZ(50px); }
+
     .btn {
+      margin-top: 30px;
       padding: 12px 30px;
       font-size: 18px;
       border: none;
@@ -18,42 +50,58 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    .btn:disabled {
-      background: #aaa;
-      cursor: wait;
+
+    .result {
+      margin-top: 20px;
+      font-size: 24px;
     }
   </style>
 </head>
 <body>
-  <h1>🎲 骰子对战</h1>
 
-  <div class="dice-area">
-    <div>你: <span id="user-dice">❔</span></div>
-    <div>机器人: <span id="bot-dice">❔</span></div>
+<h1>🎲 骰子对战</h1>
+
+<div class="dice-box">
+  <div class="dice" id="user-dice">
+    <div class="face front">1</div>
+    <div class="face back">6</div>
+    <div class="face right">3</div>
+    <div class="face left">4</div>
+    <div class="face top">5</div>
+    <div class="face bottom">2</div>
   </div>
+  <div class="dice" id="bot-dice">
+    <div class="face front">1</div>
+    <div class="face back">6</div>
+    <div class="face right">3</div>
+    <div class="face left">4</div>
+    <div class="face top">5</div>
+    <div class="face bottom">2</div>
+  </div>
+</div>
 
-  <button id="roll-btn" class="btn" onclick="rollDice()">🎲 投掷骰子</button>
+<button class="btn" onclick="roll()">🎲 投掷骰子</button>
+<div class="result" id="result"></div>
 
-  <div class="result" id="result-msg"></div>
+<script>
+const faceRotation = {
+  1: "rotateX(0deg) rotateY(0deg)",
+  2: "rotateX(-90deg) rotateY(0deg)",
+  3: "rotateX(0deg) rotateY(-90deg)",
+  4: "rotateX(0deg) rotateY(90deg)",
+  5: "rotateX(90deg) rotateY(0deg)",
+  6: "rotateX(0deg) rotateY(180deg)",
+};
 
-  <script>
-    const diceEmojis = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+async function roll() {
+  const res = await fetch("/dice/play", { method: "POST" });
+  const data = await res.json();
 
-    async function rollDice() {
-      const btn = document.getElementById("roll-btn");
-      btn.disabled = true;
-      btn.textContent = "🎲 投掷中...";
+  document.getElementById("user-dice").style.transform = faceRotation[data.user];
+  document.getElementById("bot-dice").style.transform = faceRotation[data.bot];
+  document.getElementById("result").textContent = data.message;
+}
+</script>
 
-      const res = await fetch("/dice/play", { method: "POST" });
-      const data = await res.json();
-
-      document.getElementById("user-dice").textContent = diceEmojis[data.user - 1];
-      document.getElementById("bot-dice").textContent = diceEmojis[data.bot - 1];
-      document.getElementById("result-msg").textContent = data.message;
-
-      btn.disabled = false;
-      btn.textContent = "🎲 再来一局";
-    }
-  </script>
 </body>
 </html>
