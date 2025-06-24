@@ -21,6 +21,18 @@ def index():
 def login():
     return render_template("login.html")
 
+@app.route("/bind")
+def bind_page():
+    return render_template("bind.html")
+
+@app.route("/bind/submit", methods=["POST"])
+def bind_submit():
+    phone = request.form.get("phone")
+    if not phone:
+        return "请输入手机号", 400
+    session["bind_phone"] = phone
+    return "成功！请在 Telegram 中点击「发送手机号」按钮进行验证"
+    
 @app.route("/auth", methods=["POST"])
 def auth():
     user_id = request.form.get("user_id")
