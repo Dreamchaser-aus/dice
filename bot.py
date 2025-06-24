@@ -37,22 +37,26 @@ async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Contact Handler ---
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.contact
-    user = update.effective_user
+    user_id = update.message.from_user.id
+    phone = contact.phone_number
 
-    if not contact or str(contact.user_id) != str(user.id):
-        await update.message.reply_text("⚠️ 请使用您自己的 Telegram 账号发送手机号")
-        return
-
+    # 存入数据库
+    from main import get_conn
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             INSERT INTO users (user_id, username, phone)
             VALUES (%s, %s, %s)
             ON CONFLICT (user_id) DO UPDATE
-            SET username = EXCLUDED.username, phone = EXCLUDED.phone
-        """, (user.id, user.username or "", contact.phone_number))
+            SET phone = EXCLUDED.phone
+        """, (user_id, update.message.from_user.username, phone))
         conn.commit()
 
-    await update.message.reply_text("✅ 手机号绑定成功！您可以开始游戏了。")
+    # 给出自动登录链接
+    game_url = f"https://dice-production-1f4e.up.railway.app/dice?uid={user_id}"
+    await update.message.reply_text(
+        f"✅ 手机号绑定成功！\n点击开始游戏：{game_url}",
+        disable_web_page_preview=True
+    )
 
 # --- Command: /rank ---
 async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -82,4 +86,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())
-
