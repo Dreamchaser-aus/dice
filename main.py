@@ -3,6 +3,7 @@ import random
 import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from dotenv import load_dotenv
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -55,6 +56,32 @@ def admin_dashboard():
         c.execute("SELECT user_id, username, phone, points, plays, last_game_time FROM users")
         users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
     return render_template("admin.html", users=users)
+
+@app.route("/init")
+def init_tables():
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id BIGINT PRIMARY KEY,
+                username TEXT,
+                phone TEXT,
+                points INTEGER DEFAULT 0,
+                plays INTEGER DEFAULT 0,
+                last_game_time TIMESTAMP
+            );
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS game_logs (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT,
+                user_roll INTEGER,
+                bot_roll INTEGER,
+                result TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.commit()
+    return "✅ 数据表初始化完成"
 
 if __name__ == "__main__":
     app.run(debug=True)
