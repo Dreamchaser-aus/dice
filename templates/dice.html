@@ -1,105 +1,89 @@
+<!-- dice.html 示例片段（更真实 3D 骰子） -->
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>🎲 骰子游戏</title>
+  <title>🎲 真实 3D 骰子</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f0f0f0; }
-    h1 { margin-bottom: 30px; }
-
-    .dice-box {
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      perspective: 1000px;
-    }
-
-    .dice {
-      width: 100px;
-      height: 100px;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 1s ease;
-    }
-
-    .face {
-      position: absolute;
-      width: 100px; height: 100px;
-      background: white;
-      border: 2px solid #ccc;
-      font-size: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .front  { transform: rotateY(   0deg) translateZ(50px); }
-    .back   { transform: rotateY( 180deg) translateZ(50px); }
-    .right  { transform: rotateY(  90deg) translateZ(50px); }
-    .left   { transform: rotateY( -90deg) translateZ(50px); }
-    .top    { transform: rotateX(  90deg) translateZ(50px); }
-    .bottom { transform: rotateX( -90deg) translateZ(50px); }
-
-    .btn {
-      margin-top: 30px;
-      padding: 12px 30px;
-      font-size: 18px;
-      border: none;
-      background: #007bff;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .result {
-      margin-top: 20px;
-      font-size: 24px;
+    body { margin: 0; overflow: hidden; background: #111; }
+    canvas { display: block; }
+    #result { position: absolute; top: 20px; left: 20px; color: white; font-size: 24px; }
+    #rollBtn {
+      position: absolute; top: 20px; right: 20px;
+      padding: 10px 20px; font-size: 18px;
+      background: #28a745; color: white; border: none; border-radius: 6px;
     }
   </style>
 </head>
 <body>
 
-<h1>🎲 骰子对战</h1>
+<div id="result">点数: -</div>
+<button id="rollBtn">🎲 投掷骰子</button>
+<canvas id="canvas"></canvas>
 
-<div class="dice-box">
-  <div class="dice" id="user-dice">
-    <div class="face front">1</div>
-    <div class="face back">6</div>
-    <div class="face right">3</div>
-    <div class="face left">4</div>
-    <div class="face top">5</div>
-    <div class="face bottom">2</div>
-  </div>
-  <div class="dice" id="bot-dice">
-    <div class="face front">1</div>
-    <div class="face back">6</div>
-    <div class="face right">3</div>
-    <div class="face left">4</div>
-    <div class="face top">5</div>
-    <div class="face bottom">2</div>
-  </div>
-</div>
-
-<button class="btn" onclick="roll()">🎲 投掷骰子</button>
-<div class="result" id="result"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
 <script>
-const faceRotation = {
-  1: "rotateX(0deg) rotateY(0deg)",
-  2: "rotateX(-90deg) rotateY(0deg)",
-  3: "rotateX(0deg) rotateY(-90deg)",
-  4: "rotateX(0deg) rotateY(90deg)",
-  5: "rotateX(90deg) rotateY(0deg)",
-  6: "rotateX(0deg) rotateY(180deg)",
-};
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("canvas") });
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-async function roll() {
+const geometry = new THREE.BoxGeometry();
+const materials = [
+  new THREE.MeshBasicMaterial({ color: 'white', map: createFace(1) }),
+  new THREE.MeshBasicMaterial({ color: 'white', map: createFace(6) }),
+  new THREE.MeshBasicMaterial({ color: 'white', map: createFace(2) }),
+  new THREE.MeshBasicMaterial({ color: 'white', map: createFace(5) }),
+  new THREE.MeshBasicMaterial({ color: 'white', map: createFace(3) }),
+  new THREE.MeshBasicMaterial({ color: 'white', map: createFace(4) }),
+];
+const dice = new THREE.Mesh(geometry, materials);
+scene.add(dice);
+
+camera.position.z = 3;
+
+// 动态生成点数纹理
+function createFace(n) {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#000"; ctx.font = "bold 80px sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(n, size/2, size/2);
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+// 动画
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+// 投掷逻辑
+document.getElementById("rollBtn").onclick = async () => {
   const res = await fetch("/dice/play", { method: "POST" });
   const data = await res.json();
+  document.getElementById("result").innerText = `点数: ${data.user}`;
+  rollDiceTo(data.user);
+};
 
-  document.getElementById("user-dice").style.transform = faceRotation[data.user];
-  document.getElementById("bot-dice").style.transform = faceRotation[data.bot];
-  document.getElementById("result").textContent = data.message;
+// 简单角度映射
+function rollDiceTo(n) {
+  const rotMap = {
+    1: [0, 0],      // 正面
+    2: [Math.PI / 2, 0],     // 底面
+    3: [0, -Math.PI / 2],    // 右侧
+    4: [0, Math.PI / 2],     // 左侧
+    5: [-Math.PI / 2, 0],    // 顶面
+    6: [0, Math.PI],         // 背面
+  };
+  const [rx, ry] = rotMap[n];
+  dice.rotation.x = rx + Math.random() * Math.PI * 2;
+  dice.rotation.y = ry + Math.random() * Math.PI * 2;
 }
 </script>
 
