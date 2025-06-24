@@ -3,11 +3,13 @@ import random
 import psycopg2
 import asyncio
 import logging
+import nest_asyncio
 from dotenv import load_dotenv
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ContextTypes, filters
+nest_asyncio.apply()
 )
 
 load_dotenv()
@@ -77,4 +79,5 @@ async def main():
     await application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.get_event_loop().run_until_complete(main())
+
