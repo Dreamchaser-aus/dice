@@ -1,50 +1,76 @@
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+import logging
 import os
 import psycopg2
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# --- DB Helper ---
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
+# --- Command: /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🎮 开始游戏", web_app=WebAppInfo(url="https://your-app.up.railway.app/dice"))
-    ]])
-    await update.message.reply_text("欢迎！点击下方按钮开始游戏：", reply_markup=keyboard)
+    await update.message.reply_text("\U0001F3B2 欢迎来到骰子游戏！输入 /bind 开始绑定手机号。")
 
-async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kb = [[KeyboardButton("📱 发送手机号", request_contact=True)]]
-    await update.message.reply_text("请发送您的手机号：", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True))
+# --- Command: /bind ---
+async def start_bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = ReplyKeyboardMarkup(
+        [[KeyboardButton("\U0001F4F1 发送手机号", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+    await update.message.reply_text("请点击下方按钮授权你的手机号", reply_markup=keyboard)
 
-async def save_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- Handle Contact ---
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.contact
-    if contact:
-        with get_conn() as conn, conn.cursor() as c:
-            c.execute("UPDATE users SET phone = %s WHERE user_id = %s", (contact.phone_number, contact.user_id))
-            conn.commit()
-        await update.message.reply_text("✅ 手机号绑定成功！")
+    phone = contact.phone_number
+    tg_id = update.effective_user.id
 
-async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT username, points FROM users ORDER BY points DESC LIMIT 10")
-        rows = c.fetchall()
-    text = "🏆 当前排行榜：\n"
-    for i, (username, points) in enumerate(rows, 1):
-        text += f"{i}. @{username or '未知'} - {points}分\n"
-    await update.message.reply_text(text.strip())
+        c.execute("""
+            UPDATE users SET user_id = %s WHERE phone = %s
+        """, (tg_id, phone))
+        conn.commit()
 
-def main():
+    await update.message.reply_text(f"✅ 成功绑定 Telegram ID：{tg_id} 与手机号：{phone}")
+
+# --- Command: /rank 排行榜 ---
+async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("""
+            SELECT username, points FROM users 
+            WHERE points IS NOT NULL ORDER BY points DESC LIMIT 10
+        """)
+        rows = c.fetchall()
+
+    if not rows:
+        await update.message.reply_text("暂无排行榜数据。")
+        return
+
+    msg = "\U0001F3C6 积分排行榜：\n"
+    for i, (name, pts) in enumerate(rows, 1):
+        msg += f"{i}. {name or '匿名'} - {pts} 分\n"
+    await update.message.reply_text(msg)
+
+# --- Bot Entry Point ---
+async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("rank", rank))
-    app.add_handler(CommandHandler("phone", phone))
-    app.add_handler(MessageHandler(filters.CONTACT, save_phone))
-    app.run_polling()
+    app.add_handler(CommandHandler("bind", start_bind))
+    app.add_handler(CommandHandler("rank", show_rank))
+    app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+
+    await app.run_polling(close_loop=False)
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
