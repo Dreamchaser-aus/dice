@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+    <h1 class="mb-4">用户信息管理后台</h1>
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>User ID</th>
+                <th>Username</th>
+                <th>Phone</th>
+                <th>Points</th>
+                <th>Plays</th>
+                <th>Last Game Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.user_id }}</td>
+                <td>{{ user.username or '无' }}</td>
+                <td>{{ user.phone or '未绑定' }}</td>
+                <td>{{ user.points }}</td>
+                <td>{{ user.plays }}</td>
+                <td>{{ user.last_game_time or '无' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
