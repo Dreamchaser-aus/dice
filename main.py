@@ -42,6 +42,9 @@ def auth():
 
 @app.route("/dice")
 def dice():
+    uid = request.args.get("uid")
+    if uid:
+        session["user_id"] = uid
     if "user_id" not in session:
         return redirect(url_for("login"))
     return render_template("dice.html")
