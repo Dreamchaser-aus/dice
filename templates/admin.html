@@ -2,89 +2,124 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>Telegram 用户后台管理</title>
-  <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <title>后台管理面板</title>
   <style>
-    body { padding: 2rem; background-color: #f5f8fa; }
-    .table th, .table td { vertical-align: middle; text-align: center; }
-    .badge { font-size: 90%; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0; padding: 0;
+    }
+    header {
+      background: #333;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    main {
+      padding: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      padding: 0.75rem;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #eee;
+    }
+    tr:hover {
+      background: #f1f1f1;
+    }
+    .summary {
+      margin-bottom: 1.5rem;
+      font-size: 1.1rem;
+    }
+    .btn {
+      padding: 4px 10px;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .ban {
+      background: #e74c3c;
+      color: #fff;
+    }
+    .view {
+      background: #3498db;
+      color: #fff;
+    }
+    input[type="search"] {
+      padding: 6px;
+      margin-bottom: 1rem;
+      width: 300px;
+    }
   </style>
 </head>
 <body>
-<div class="container">
-  <h2 class="mb-4">Telegram 用户后台管理</h2>
+  <header>
+    <h1>🎮 Dice Game 管理后台</h1>
+  </header>
 
-  <div class="row mb-3">
-    <div class="col-md-4">
-      <input class="form-control" placeholder="用户名 / 手机号 / 邀请人用户名" id="search"/>
+  <main>
+    <div class="summary">
+      总用户数: {{ stats.total }} ｜已验证手机号: {{ stats.verified }} ｜封禁用户数: {{ stats.blocked }} ｜总积分: {{ stats.points }}
     </div>
-    <div class="col-md-2">
-      <select class="form-select">
-        <option>全部</option>
-        <option>已授权</option>
-        <option>未授权</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-primary w-100">搜索</button>
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-info w-100">今日排行榜</button>
-    </div>
-  </div>
 
-  <div class="alert alert-info">
-    总用户数: {{ stats.total }} ｜已授权手机号: {{ stats.verified }} ｜已封禁用户: {{ stats.blocked }} ｜总积分: {{ stats.points }}
-  </div>
+    <input type="search" id="searchInput" placeholder="🔍 输入用户名/手机号">
 
-  <table class="table table-bordered table-hover">
-    <thead class="table-dark">
-    <tr>
-      <th>用户ID</th>
-      <th>用户名</th>
-      <th>手机号</th>
-      <th>积分</th>
-      <th>今日游戏次数</th>
-      <th>邀请人</th>
-      <th>已邀请</th>
-      <th>封禁状态</th>
-      <th>注册时间</th>
-      <th>最后游戏时间</th>
-      <th>操作</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for user in users %}
-    <tr>
-      <td>{{ user.user_id }}</td>
-      <td>{{ user.username or '' }}<br><small>{{ user.nickname or '' }}</small></td>
-      <td>{{ user.phone or '未授权' }}</td>
-      <td>{{ user.points }}</td>
-      <td>{{ user.today_plays or 0 }}</td>
-      <td>{{ user.inviter or '无' }}</td>
-      <td>
-        已邀请 {{ user.invited_count or 0 }} 人
-        {% if user.invited_count > 0 %}
-          <button class="btn btn-sm btn-primary">查看邀请用户</button>
-        {% endif %}
-      </td>
-      <td>
-        <select class="form-select form-select-sm">
-          <option {% if not user.blocked %}selected{% endif %}>否</option>
-          <option {% if user.blocked %}selected{% endif %}>是</option>
-        </select>
-      </td>
-      <td>{{ user.created_at }}</td>
-      <td>{{ user.last_game_time or '无' }}</td>
-      <td>
-        <button class="btn btn-success btn-sm">保存</button>
-        <button class="btn btn-danger btn-sm">删除</button><br>
-        <button class="btn btn-info btn-sm mt-1">查看游戏记录</button>
-      </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>用户名</th>
+          <th>手机号</th>
+          <th>积分</th>
+          <th>游戏次数</th>
+          <th>最后时间</th>
+          <th>邀请数</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="userTable">
+        {% for user in users %}
+        <tr>
+          <td>{{ user.user_id }}</td>
+          <td>{{ user.username or '未设置' }}</td>
+          <td>{{ user.phone or '未绑定' }}</td>
+          <td>{{ user.points }}</td>
+          <td>{{ user.plays }}</td>
+          <td>{{ user.last_game_time or '无' }}</td>
+          <td>{{ user.invited_count or 0 }}</td>
+          <td>
+            <button class="btn ban" onclick="banUser('{{ user.user_id }}')">封禁</button>
+            <button class="btn view" onclick="viewUser('{{ user.user_id }}')">查看</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    function banUser(uid) {
+      alert("🚫 模拟封禁用户: " + uid + "（你可以接入 API 实现）");
+    }
+    function viewUser(uid) {
+      alert("📄 查看用户详情: " + uid + "（你可以接入详情弹窗）");
+    }
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#userTable tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+      });
+    });
+  </script>
 </body>
 </html>
