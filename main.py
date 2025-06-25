@@ -70,7 +70,21 @@ def admin_dashboard():
     with get_conn() as conn, conn.cursor() as c:
         c.execute("SELECT user_id, username, phone, points, plays, last_game_time FROM users")
         users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
-    return render_template("admin.html", users=users)
+
+        # 新增统计数据
+        total = len(users)
+        verified = sum(1 for u in users if u["phone"] and u["phone"] != "未授权")
+        blocked = 0  # 如你有封禁状态字段请替换这里
+        total_points = sum(u["points"] or 0 for u in users)
+
+        stats = {
+            "total": total,
+            "verified": verified,
+            "blocked": blocked,
+            "points": total_points
+        }
+
+    return render_template("admin.html", users=users, stats=stats)
 
 @app.route("/init")
 @app.route("/init")
