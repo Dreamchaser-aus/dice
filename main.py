@@ -3,6 +3,7 @@ import random
 import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -109,6 +110,21 @@ def delete_user():
         conn.commit()
     return jsonify({"status": "deleted"})
 
+@app.route("/admin/rank/today")
+def today_rank():
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("""
+            SELECT u.user_id, u.username, u.points, COUNT(g.id) AS plays_today
+            FROM users u
+            JOIN game_logs g ON u.user_id = g.user_id
+            WHERE g.timestamp::date = CURRENT_DATE
+            GROUP BY u.user_id, u.username, u.points
+            ORDER BY u.points DESC
+            LIMIT 10;
+        """)
+        users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
+    return render_template("rank_today.html", users=users)
+    
 @app.route("/user/logs")
 def user_logs():
     user_id = request.args.get("user_id")
