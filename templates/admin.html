@@ -63,8 +63,12 @@
           <td>{{ user.user_id }}</td>
           <td>{{ user.username }}</td>
           <td>{{ user.phone or '未授权' }}</td>
-          <td>{{ user.points }}</td>
-          <td>{{ user.plays }}</td>
+          <td>
+            <input type="number" id="points-{{ user.user_id }}" value="{{ user.points or 0 }}" class="form-control form-control-sm">
+          </td>
+          <td>
+            <input type="number" id="plays-{{ user.user_id }}" value="{{ user.plays or 0 }}" class="form-control form-control-sm">
+          </td>
           <td>{{ user.inviter or '无' }}</td>
           <td>
             已邀请 {{ user.invited_count }} 人
