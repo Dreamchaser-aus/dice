@@ -71,62 +71,45 @@ from flask import request
 @app.route("/admin")
 def admin_dashboard():
     keyword = request.args.get("q", "").strip()
-    page = int(request.args.get("page", 1))
-    page_size = 20
-    offset = (page - 1) * page_size
+    blocked_filter = request.args.get("filter", "").strip()
+    
+    query = """
+        SELECT 
+            u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
+            u.created_at, u.inviter_id, u.blocked,
+            inv.invited_count
+        FROM users u
+        LEFT JOIN (
+            SELECT inviter_id, COUNT(*) AS invited_count
+            FROM users
+            WHERE inviter_id IS NOT NULL
+            GROUP BY inviter_id
+        ) inv ON u.user_id = inv.inviter_id
+        WHERE 1=1
+    """
+    params = []
+
+    if keyword:
+        query += " AND (u.username ILIKE %s OR u.phone ILIKE %s)"
+        params += [f"%{keyword}%", f"%{keyword}%"]
+
+    if blocked_filter == "1":
+        query += " AND u.blocked = TRUE"
+    elif blocked_filter == "0":
+        query += " AND (u.blocked = FALSE OR u.blocked IS NULL)"
 
     with get_conn() as conn, conn.cursor() as c:
-        base_sql = """
-            SELECT 
-                u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
-                u.created_at, u.blocked,
-                COALESCE(inv.invited_count, 0) AS invited_count,
-                invuser.username AS inviter
-            FROM users u
-            LEFT JOIN (
-                SELECT inviter_id, COUNT(*) AS invited_count
-                FROM users
-                WHERE inviter_id IS NOT NULL
-                GROUP BY inviter_id
-            ) inv ON u.user_id = inv.inviter_id
-            LEFT JOIN users invuser ON u.inviter_id = invuser.user_id
-        """
-
-        where_clauses = []
-        params = []
-
-        if keyword:
-            where_clauses.append("""
-                (u.username ILIKE %s OR u.phone ILIKE %s OR invuser.username ILIKE %s)
-            """)
-            like_kw = f"%{keyword}%"
-            params += [like_kw, like_kw, like_kw]
-
-        if where_clauses:
-            base_sql += " WHERE " + " AND ".join(where_clauses)
-
-        count_sql = f"SELECT COUNT(*) FROM ({base_sql}) AS total"
-        c.execute(count_sql, params)
-        total_count = c.fetchone()[0]
-
-        base_sql += " ORDER BY u.last_game_time DESC NULLS LAST"
-        base_sql += " LIMIT %s OFFSET %s"
-        params += [page_size, offset]
-
-        c.execute(base_sql, params)
-        rows = c.fetchall()
-        cols = [desc[0] for desc in c.description]
-        users = [dict(zip(cols, row)) for row in rows]
+        c.execute(query, params)
+        users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
 
         stats = {
-            "total": total_count,
+            "total": len(users),
             "verified": sum(1 for u in users if u["phone"]),
             "blocked": sum(1 for u in users if u.get("blocked")),
             "points": sum(u["points"] or 0 for u in users)
         }
 
-    total_pages = (total_count + page_size - 1) // page_size
-    return render_template("admin.html", users=users, stats=stats, page=page, total_pages=total_pages, keyword=keyword)
+    return render_template("admin.html", users=users, stats=stats, request=request, keyword=keyword, page=1, total_pages=1)
 
 @app.route("/user/save", methods=["POST"])
 def save_user_status():
@@ -198,6 +181,7 @@ def init_tables():
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_game_time TIMESTAMP;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_by BIGINT;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN DEFAULT FALSE;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
 
         c.execute("""
             CREATE TABLE IF NOT EXISTS game_logs (
