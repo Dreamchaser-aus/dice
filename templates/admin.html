@@ -37,8 +37,13 @@
       <select class="form-select" style="max-width:150px">
         <option>全部</option>
       </select>
-      <button class="btn btn-primary">搜索</button>
+      <button class="btn btn-primary">搜索</button>     
     </div>
+  <div class="mb-3">
+  <a href="/admin" class="btn btn-sm btn-secondary">🔁 刷新</a>
+  <a href="/admin/rank/today" class="btn btn-sm btn-primary">📈 今日排行榜</a>
+  <a href="/init" class="btn btn-sm btn-warning">⚙️ 初始化表结构</a>
+</div>  
 
     <div class="alert alert-info">
       总用户数: {{ stats.total }} ｜已授权手机号: {{ stats.verified }} ｜已封禁用户: {{ stats.blocked }} ｜总积分: {{ stats.points }}
