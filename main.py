@@ -71,13 +71,14 @@ def admin_dashboard():
         c.execute("""
             SELECT 
                 u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
-                COALESCE(inv.invited_count, 0) AS invited_count
+                COALESCE(inv.invited_count, 0) AS invited_count,
+                u.blocked
             FROM users u
             LEFT JOIN (
-                SELECT inviter_id, COUNT(*) AS invited_count
+                SELECT invited_by AS inviter_id, COUNT(*) AS invited_count
                 FROM users
-                WHERE inviter_id IS NOT NULL
-                GROUP BY inviter_id
+                WHERE invited_by IS NOT NULL
+                GROUP BY invited_by
             ) inv ON u.user_id = inv.inviter_id
         """)
         users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
@@ -85,31 +86,61 @@ def admin_dashboard():
         stats = {
             "total": len(users),
             "verified": sum(1 for u in users if u["phone"]),
-            "blocked": 0,
+            "blocked": sum(1 for u in users if u.get("blocked")),
             "points": sum(u["points"] or 0 for u in users)
         }
 
     return render_template("admin.html", users=users, stats=stats)
 
-@app.route("/init")
+@app.route("/user/save", methods=["POST"])
+def save_user():
+    user_id = request.form.get("user_id")
+    blocked = request.form.get("blocked") == "true"
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("UPDATE users SET blocked = %s WHERE user_id = %s", (blocked, user_id))
+        conn.commit()
+    return "保存成功"
+
+@app.route("/user/delete", methods=["POST"])
+def delete_user():
+    user_id = request.form.get("user_id")
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+        conn.commit()
+    return "删除成功"
+
+@app.route("/user/logs")
+def user_logs():
+    user_id = request.args.get("user_id")
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT user_roll, bot_roll, result, timestamp FROM game_logs WHERE user_id = %s ORDER BY timestamp DESC", (user_id,))
+        logs = c.fetchall()
+    return jsonify(logs)
+
+@app.route("/invitees")
+def invitees():
+    user_id = request.args.get("user_id")
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT user_id, username, phone FROM users WHERE invited_by = %s", (user_id,))
+        rows = c.fetchall()
+    return jsonify(rows)
+
 @app.route("/init")
 def init_tables():
     with get_conn() as conn, conn.cursor() as c:
-        # 创建 users 表
         c.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id BIGINT PRIMARY KEY
             );
         """)
-        # 增加字段（幂等操作）
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plays INTEGER DEFAULT 0;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_game_time TIMESTAMP;")
-        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS inviter_id BIGINT;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_by BIGINT;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN DEFAULT FALSE;")
 
-        # 创建 game_logs 表
         c.execute("""
             CREATE TABLE IF NOT EXISTS game_logs (
                 id SERIAL PRIMARY KEY,
