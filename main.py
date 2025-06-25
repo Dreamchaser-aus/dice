@@ -93,13 +93,13 @@ def admin_dashboard():
     return render_template("admin.html", users=users, stats=stats)
 
 @app.route("/user/save", methods=["POST"])
-def save_user():
+def save_user_status():
     user_id = request.form.get("user_id")
-    blocked = request.form.get("blocked") == "true"
+    blocked = request.form.get("blocked") == "1"
     with get_conn() as conn, conn.cursor() as c:
         c.execute("UPDATE users SET blocked = %s WHERE user_id = %s", (blocked, user_id))
         conn.commit()
-    return "保存成功"
+    return jsonify({"status": "ok"})
 
 @app.route("/user/delete", methods=["POST"])
 def delete_user():
@@ -107,23 +107,30 @@ def delete_user():
     with get_conn() as conn, conn.cursor() as c:
         c.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
         conn.commit()
-    return "删除成功"
+    return jsonify({"status": "deleted"})
 
 @app.route("/user/logs")
 def user_logs():
     user_id = request.args.get("user_id")
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT user_roll, bot_roll, result, timestamp FROM game_logs WHERE user_id = %s ORDER BY timestamp DESC", (user_id,))
-        logs = c.fetchall()
-    return jsonify(logs)
+        c.execute("""
+            SELECT user_roll, bot_roll, result, timestamp
+            FROM game_logs
+            WHERE user_id = %s
+            ORDER BY timestamp DESC
+            LIMIT 100
+        """, (user_id,))
+        logs = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
+    return render_template("user_logs.html", logs=logs)
 
 @app.route("/invitees")
-def invitees():
+def view_invitees():
     user_id = request.args.get("user_id")
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT user_id, username, phone FROM users WHERE invited_by = %s", (user_id,))
+        c.execute("SELECT user_id, username, phone, points FROM users WHERE inviter_id = %s", (user_id,))
         rows = c.fetchall()
-    return jsonify(rows)
+        invitees = [dict(zip([desc[0] for desc in c.description], row)) for row in rows]
+    return render_template("invitees.html", invitees=invitees)
 
 @app.route("/init")
 def init_tables():
