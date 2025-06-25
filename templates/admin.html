@@ -32,13 +32,13 @@
 <body class="p-4">
   <div class="container">
     <h2 class="mb-4">Telegram 用户后台管理</h2>
-    <div class="input-group mb-3">
-      <input type="text" class="form-control" placeholder="用户名 / 手机号 / 邀请人用户名">
-      <select class="form-select" style="max-width:150px">
-        <option>全部</option>
-      </select>
-      <button class="btn btn-primary">搜索</button>     
-    </div>
+<form class="input-group mb-3" method="get" action="/admin">
+  <input type="text" class="form-control" name="q" placeholder="用户名 / 手机号 / 邀请人用户名" value="{{ request.args.q or '' }}">
+  <select class="form-select" name="filter" style="max-width:150px">
+    <option value="">全部</option>
+  </select>
+  <button class="btn btn-primary" type="submit">搜索</button>
+</form>
   <div class="mb-3">
   <a href="/admin" class="btn btn-sm btn-secondary">🔁 刷新</a>
   <a href="/admin/rank/today" class="btn btn-sm btn-primary">📈 今日排行榜</a>
