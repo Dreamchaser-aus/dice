@@ -112,11 +112,20 @@ def admin_dashboard():
     return render_template("admin.html", users=users, stats=stats, request=request, keyword=keyword, page=1, total_pages=1)
 
 @app.route("/user/save", methods=["POST"])
-def save_user_status():
-    user_id = request.form.get("user_id")
-    blocked = request.form.get("blocked") == "1"
+def save_user():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    blocked = data.get("blocked")
+    points = data.get("points")
+    plays = data.get("plays")
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("UPDATE users SET blocked = %s WHERE user_id = %s", (blocked, user_id))
+        c.execute("""
+            UPDATE users
+            SET blocked = %s,
+                points = %s,
+                plays = %s
+            WHERE user_id = %s
+        """, (blocked, points, plays, user_id))
         conn.commit()
     return jsonify({"status": "ok"})
 
