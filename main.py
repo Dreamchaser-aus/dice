@@ -68,20 +68,25 @@ def play_dice():
 @app.route("/admin")
 def admin_dashboard():
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT user_id, username, phone, points, plays, last_game_time FROM users")
+        c.execute("""
+            SELECT 
+                u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
+                COALESCE(inv.invited_count, 0) AS invited_count
+            FROM users u
+            LEFT JOIN (
+                SELECT inviter_id, COUNT(*) AS invited_count
+                FROM users
+                WHERE inviter_id IS NOT NULL
+                GROUP BY inviter_id
+            ) inv ON u.user_id = inv.inviter_id
+        """)
         users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
 
-        # 新增统计数据
-        total = len(users)
-        verified = sum(1 for u in users if u["phone"] and u["phone"] != "未授权")
-        blocked = 0  # 如你有封禁状态字段请替换这里
-        total_points = sum(u["points"] or 0 for u in users)
-
         stats = {
-            "total": total,
-            "verified": verified,
-            "blocked": blocked,
-            "points": total_points
+            "total": len(users),
+            "verified": sum(1 for u in users if u["phone"]),
+            "blocked": 0,
+            "points": sum(u["points"] or 0 for u in users)
         }
 
     return render_template("admin.html", users=users, stats=stats)
@@ -102,6 +107,7 @@ def init_tables():
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plays INTEGER DEFAULT 0;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_game_time TIMESTAMP;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS inviter_id BIGINT;")
 
         # 创建 game_logs 表
         c.execute("""
