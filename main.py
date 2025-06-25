@@ -4,6 +4,7 @@ import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from dotenv import load_dotenv
 from datetime import datetime
+from datetime import date
 
 load_dotenv()
 
@@ -13,6 +14,20 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
+
+def auto_reset_daily_plays():
+    today = date.today()
+
+    conn = get_db()
+    c = conn.cursor()
+    # 仅重置那些还没更新今天的用户
+    c.execute("""
+        UPDATE users 
+        SET plays = plays + 10,
+            daily_reset = %s
+        WHERE daily_reset IS NULL OR daily_reset < %s
+    """, (today, today))
+    conn.commit()    
 
 @app.route("/")
 def index():
@@ -70,6 +85,7 @@ from flask import request
 
 @app.route("/admin")
 def admin_dashboard():
+    auto_reset_daily_plays()
     keyword = request.args.get("q", "").strip()
     blocked_filter = request.args.get("filter", "").strip()
     
