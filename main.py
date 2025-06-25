@@ -71,9 +71,11 @@ from flask import request
 @app.route("/admin")
 def admin_dashboard():
     keyword = request.args.get("q", "").strip()
+    page = int(request.args.get("page", 1))
+    page_size = 20
+    offset = (page - 1) * page_size
 
     with get_conn() as conn, conn.cursor() as c:
-        # 基础 SQL
         base_sql = """
             SELECT 
                 u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
@@ -97,27 +99,34 @@ def admin_dashboard():
             where_clauses.append("""
                 (u.username ILIKE %s OR u.phone ILIKE %s OR invuser.username ILIKE %s)
             """)
-            like_keyword = f"%{keyword}%"
-            params += [like_keyword, like_keyword, like_keyword]
+            like_kw = f"%{keyword}%"
+            params += [like_kw, like_kw, like_kw]
 
         if where_clauses:
             base_sql += " WHERE " + " AND ".join(where_clauses)
 
+        count_sql = f"SELECT COUNT(*) FROM ({base_sql}) AS total"
+        c.execute(count_sql, params)
+        total_count = c.fetchone()[0]
+
         base_sql += " ORDER BY u.last_game_time DESC NULLS LAST"
+        base_sql += " LIMIT %s OFFSET %s"
+        params += [page_size, offset]
 
         c.execute(base_sql, params)
         rows = c.fetchall()
-        columns = [desc[0] for desc in c.description]
-        users = [dict(zip(columns, row)) for row in rows]
+        cols = [desc[0] for desc in c.description]
+        users = [dict(zip(cols, row)) for row in rows]
 
         stats = {
-            "total": len(users),
+            "total": total_count,
             "verified": sum(1 for u in users if u["phone"]),
             "blocked": sum(1 for u in users if u.get("blocked")),
             "points": sum(u["points"] or 0 for u in users)
         }
 
-    return render_template("admin.html", users=users, stats=stats)
+    total_pages = (total_count + page_size - 1) // page_size
+    return render_template("admin.html", users=users, stats=stats, page=page, total_pages=total_pages, keyword=keyword)
 
 @app.route("/user/save", methods=["POST"])
 def save_user_status():
