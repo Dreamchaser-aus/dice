@@ -66,23 +66,49 @@ def play_dice():
         conn.commit()
     return jsonify({"user": user_roll, "bot": bot_roll, "message": result})
 
+from flask import request
+
 @app.route("/admin")
 def admin_dashboard():
+    keyword = request.args.get("q", "").strip()
+
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("""
+        # 基础 SQL
+        base_sql = """
             SELECT 
                 u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
+                u.created_at, u.blocked,
                 COALESCE(inv.invited_count, 0) AS invited_count,
-                u.blocked
+                invuser.username AS inviter
             FROM users u
             LEFT JOIN (
-                SELECT invited_by AS inviter_id, COUNT(*) AS invited_count
+                SELECT inviter_id, COUNT(*) AS invited_count
                 FROM users
-                WHERE invited_by IS NOT NULL
-                GROUP BY invited_by
+                WHERE inviter_id IS NOT NULL
+                GROUP BY inviter_id
             ) inv ON u.user_id = inv.inviter_id
-        """)
-        users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
+            LEFT JOIN users invuser ON u.inviter_id = invuser.user_id
+        """
+
+        where_clauses = []
+        params = []
+
+        if keyword:
+            where_clauses.append("""
+                (u.username ILIKE %s OR u.phone ILIKE %s OR invuser.username ILIKE %s)
+            """)
+            like_keyword = f"%{keyword}%"
+            params += [like_keyword, like_keyword, like_keyword]
+
+        if where_clauses:
+            base_sql += " WHERE " + " AND ".join(where_clauses)
+
+        base_sql += " ORDER BY u.last_game_time DESC NULLS LAST"
+
+        c.execute(base_sql, params)
+        rows = c.fetchall()
+        columns = [desc[0] for desc in c.description]
+        users = [dict(zip(columns, row)) for row in rows]
 
         stats = {
             "total": len(users),
