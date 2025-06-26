@@ -235,8 +235,14 @@ def user_logs():
 @app.route("/invitees")
 def view_invitees():
     user_id = request.args.get("user_id")
+    if not user_id:
+        return "缺少参数 user_id", 400
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT user_id, username, phone, points FROM users WHERE inviter_id = %s", (user_id,))
+        c.execute("""
+            SELECT user_id, username, phone, points
+            FROM users
+            WHERE inviter_id = %s
+        """, (user_id,))
         rows = c.fetchall()
         invitees = [dict(zip([desc[0] for desc in c.description], row)) for row in rows]
     return render_template("invitees.html", invitees=invitees)
