@@ -123,7 +123,9 @@ def auth():
     phone = session.get("bind_phone")
     username = session.get("bind_username", "")
     invited_by = session.get("invited_by")
-    
+
+    print("AUTH DEBUG:", user_id, phone, invited_by)
+
     if not user_id or not phone:
         return "绑定数据不完整", 400
 
