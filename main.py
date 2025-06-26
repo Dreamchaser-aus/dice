@@ -1,7 +1,9 @@
 import os
 import random
 import psycopg2
-from flask import  Flask
+import requests
+import hashlib
+import hmac
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, g
 from dotenv import load_dotenv
 from datetime import datetime
@@ -12,6 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "devsecret")
 DATABASE_URL = os.getenv("DATABASE_URL")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
@@ -28,6 +31,59 @@ def auto_reset_daily_plays():
             WHERE daily_reset IS NULL OR daily_reset < %s
         """, (today, today))
         conn.commit()
+        
+def check_telegram_auth(data):
+    auth_data = dict(data)
+    hash_check = auth_data.pop("hash", "")
+    data_check_str = "\n".join(f"{k}={str(auth_data[k])}" for k in sorted(auth_data))
+    secret_key = hashlib.sha256(BOT_TOKEN.encode()).digest()
+    hmac_hash = hmac.new(secret_key, data_check_str.encode(), hashlib.sha256).hexdigest()
+    return hmac_hash == hash_check
+
+@app.route("/bind/telegram", methods=["POST"])
+def bind_telegram():
+    data = request.get_json()
+    if not data or not check_telegram_auth(data):
+        return jsonify({"success": False, "error": "Telegram 验证失败"})
+
+    user_id = data.get("id")
+    username = data.get("username")
+    phone = session.get("bind_phone")
+    invited_by = session.get("invited_by")
+
+    if not phone:
+        return jsonify({"success": False, "error": "缺少手机号"})
+
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT user_id FROM users WHERE phone = %s AND user_id != %s", (phone, user_id))
+        existing = c.fetchone()
+        if existing:
+            return jsonify({"success": False, "error": "该手机号已被绑定其他账号"})
+
+        c.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
+        if not c.fetchone():
+            c.execute("""
+                INSERT INTO users (user_id, username, phone, created_at, invited_by)
+                VALUES (%s, %s, %s, now(), %s)
+            """, (user_id, username, phone, invited_by))
+        else:
+            c.execute("""
+                UPDATE users SET username = %s, phone = %s, invited_by = COALESCE(invited_by, %s)
+                WHERE user_id = %s
+            """, (username, phone, invited_by, user_id))
+        conn.commit()
+
+    session["user_id"] = user_id
+    send_telegram_message(user_id, f"✅ 您已成功绑定手机号：{phone}")
+    return jsonify({"success": True})
+    
+def send_telegram_message(user_id, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": user_id, "text": text}
+    try:
+        requests.post(url, json=payload, timeout=3)
+    except Exception as e:
+        print(f"发送 Telegram 消息失败: {e}")        
 
 # 请求结束自动关闭连接
 @app.teardown_appcontext
@@ -59,24 +115,33 @@ def bind_submit():
     session["bind_phone"] = phone
     session["invited_by"] = inviter  # 保存到 session 中供后续使用
 
-    return "成功！请在 Telegram 中点击「发送手机号」按钮进行验证"
+    return jsonify({"success": True, "message": "请在 Telegram 中发送手机号"})
     
 @app.route("/auth", methods=["POST"])
 def auth():
     user_id = request.form.get("user_id")
-    if not user_id:
-        return "User ID required", 400
-
+    phone = session.get("bind_phone")
+    username = session.get("bind_username", "")
     invited_by = session.get("invited_by")
+    
+    if not user_id or not phone:
+        return "绑定数据不完整", 400
 
     with get_conn() as conn, conn.cursor() as c:
-        # 若用户尚未存在则插入
         c.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
         if not c.fetchone():
-            c.execute("INSERT INTO users (user_id, phone, invited_by) VALUES (%s, %s, %s)", (
-                user_id, session.get("bind_phone"), invited_by
-            ))
-            conn.commit()
+            c.execute("""
+                INSERT INTO users (user_id, username, phone, created_at, invited_by)
+                VALUES (%s, %s, %s, now(), %s)
+            """, (user_id, username, phone, invited_by))
+        else:
+            c.execute("""
+                UPDATE users
+                SET username = %s,
+                    phone = %s,
+                    invited_by = COALESCE(invited_by, %s)
+                WHERE user_id = %s
+            """, (username, phone, invited_by, user_id))
 
     session["user_id"] = user_id
     return redirect(url_for("dice"))
