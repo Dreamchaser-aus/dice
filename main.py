@@ -240,7 +240,7 @@ def view_invitees():
         rows = c.fetchall()
         invitees = [dict(zip([desc[0] for desc in c.description], row)) for row in rows]
     return render_template("invitees.html", invitees=invitees)
-
+    
 @app.route("/init")
 def init_tables():
     with get_conn() as conn, conn.cursor() as c:
