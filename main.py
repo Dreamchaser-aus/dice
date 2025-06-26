@@ -2,7 +2,7 @@ import os
 import random
 import psycopg2
 from flask import  Flask
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, g
 from dotenv import load_dotenv
 from datetime import datetime
 from datetime import date
