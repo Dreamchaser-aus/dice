@@ -51,15 +51,33 @@ def bind_page():
 @app.route("/bind/submit", methods=["POST"])
 def bind_submit():
     phone = request.form.get("phone")
+    inviter = request.args.get("inviter")  # 通过 URL 获取邀请人 ID
+
     if not phone:
         return "请输入手机号", 400
+
     session["bind_phone"] = phone
+    session["invited_by"] = inviter  # 保存到 session 中供后续使用
+
     return "成功！请在 Telegram 中点击「发送手机号」按钮进行验证"
     
 @app.route("/auth", methods=["POST"])
 def auth():
     user_id = request.form.get("user_id")
-    if not user_id: return "User ID required", 400
+    if not user_id:
+        return "User ID required", 400
+
+    invited_by = session.get("invited_by")
+
+    with get_conn() as conn, conn.cursor() as c:
+        # 若用户尚未存在则插入
+        c.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
+        if not c.fetchone():
+            c.execute("INSERT INTO users (user_id, phone, invited_by) VALUES (%s, %s, %s)", (
+                user_id, session.get("bind_phone"), invited_by
+            ))
+            conn.commit()
+
     session["user_id"] = user_id
     return redirect(url_for("dice"))
 
@@ -235,16 +253,9 @@ def user_logs():
 @app.route("/invitees")
 def view_invitees():
     user_id = request.args.get("user_id")
-    if not user_id:
-        return "缺少参数 user_id", 400
     with get_conn() as conn, conn.cursor() as c:
-        c.execute("""
-            SELECT user_id, username, phone, points
-            FROM users
-            WHERE inviter_id = %s
-        """, (user_id,))
-        rows = c.fetchall()
-        invitees = [dict(zip([desc[0] for desc in c.description], row)) for row in rows]
+        c.execute("SELECT user_id, username, phone, points FROM users WHERE invited_by = %s", (user_id,))
+        invitees = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
     return render_template("invitees.html", invitees=invitees)
     
 @app.route("/init")
