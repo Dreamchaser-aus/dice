@@ -97,8 +97,7 @@ def play_dice():
 
         plays_today, daily_reset = row
         today = date.today()
-        
-        # 如果还没重置 today 的次数，重置为 0
+
         if daily_reset != today:
             plays_today = 0
             c.execute("UPDATE users SET plays = 0, daily_reset = %s WHERE user_id = %s", (today, user_id))
@@ -122,7 +121,14 @@ def play_dice():
         """, (delta, user_id))
         conn.commit()
 
-    return jsonify({"user": user_roll, "bot": bot_roll, "message": result})
+        remaining = 9 - plays_today
+
+    return jsonify({
+        "user": user_roll,
+        "bot": bot_roll,
+        "message": result,
+        "remaining": remaining
+    })
     
 from flask import request
 
