@@ -171,7 +171,7 @@ def admin_dashboard():
         GROUP BY invited_by
     ) inv ON u.user_id = inv.invited_by
     WHERE 1=1
-"""    
+    """
     params = []
 
     if keyword:
@@ -193,15 +193,15 @@ def admin_dashboard():
             "blocked": sum(1 for u in users if u.get("blocked")),
             "points": sum(u["points"] or 0 for u in users)
         }
-def format_time(value):
-    if isinstance(value, datetime):
-        return value.strftime("%Y-%m-%d %H:%M:%S")
-    return value or ''
 
-# 🔽 放在 users 查询完之后
-for u in users:
-    u["created_at"] = format_time(u.get("created_at"))
-    u["last_game_time"] = format_time(u.get("last_game_time"))
+    def format_time(value):
+        if isinstance(value, datetime):
+            return value.strftime("%Y-%m-%d %H:%M:%S")
+        return value or ''
+
+    for u in users:
+        u["created_at"] = format_time(u.get("created_at"))
+        u["last_game_time"] = format_time(u.get("last_game_time"))
 
     return render_template("admin.html", users=users, stats=stats, request=request, keyword=keyword, page=1, total_pages=1)
 
