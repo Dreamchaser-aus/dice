@@ -111,22 +111,27 @@ const faceRotation = {
 
 async function roll() {
   const res = await fetch("/dice/play", { method: "POST" });
+
+  if (res.status === 403) {
+    document.getElementById("result").textContent = "❌ 今日次数已用完";
+    document.querySelector("button.btn").disabled = true;
+    return;
+  }
+
   const data = await res.json();
 
   document.getElementById("user-dice").style.transform = faceRotation[data.user];
   document.getElementById("bot-dice").style.transform = faceRotation[data.bot];
   document.getElementById("result").textContent = data.message;
 
-  const remSpan = document.getElementById("remaining");
-  const rollBtn = document.getElementById("roll-btn");
-  const current = parseInt(remSpan.textContent);
-  if (!isNaN(current) && current > 0) {
-    const newRemaining = current - 1;
-    remSpan.textContent = newRemaining;
-    if (newRemaining <= 0) {
-      rollBtn.disabled = true;
-      document.getElementById("result").textContent = "☑ 今日次数已用完，请明日再来！";
-    }
+  // ↓ 自动减少前端显示次数
+  const remainingEl = document.getElementById("remaining");
+  let remaining = parseInt(remainingEl.textContent);
+  if (remaining > 0) {
+    remainingEl.textContent = remaining - 1;
+  }
+  if (remaining - 1 <= 0) {
+    document.querySelector("button.btn").disabled = true;
   }
 }
 </script>
