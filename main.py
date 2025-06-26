@@ -1,11 +1,9 @@
 import os
 import random
 import psycopg2
-from flask import  Flask
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, g
 from dotenv import load_dotenv
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
 
 load_dotenv()
 
@@ -15,8 +13,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
-
-from datetime import date
 
 def auto_reset_daily_plays():
     today = date.today()
@@ -29,13 +25,12 @@ def auto_reset_daily_plays():
         """, (today, today))
         conn.commit()
 
-# 请求结束自动关闭连接
 @app.teardown_appcontext
 def close_db(exception):
     db = g.pop('db', None)
     if db is not None:
         db.close()
-        
+
 @app.route("/")
 def index():
     return redirect(url_for("login"))
@@ -51,33 +46,25 @@ def bind_page():
 @app.route("/bind/submit", methods=["POST"])
 def bind_submit():
     phone = request.form.get("phone")
-    inviter = request.args.get("inviter")  # 通过 URL 获取邀请人 ID
-
+    inviter = request.args.get("inviter")
     if not phone:
         return "请输入手机号", 400
-
     session["bind_phone"] = phone
-    session["invited_by"] = inviter  # 保存到 session 中供后续使用
-
+    session["invited_by"] = inviter
     return "成功！请在 Telegram 中点击「发送手机号」按钮进行验证"
-    
+
 @app.route("/auth", methods=["POST"])
 def auth():
     user_id = request.form.get("user_id")
     if not user_id:
         return "User ID required", 400
-
     invited_by = session.get("invited_by")
-
     with get_conn() as conn, conn.cursor() as c:
-        # 若用户尚未存在则插入
         c.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
         if not c.fetchone():
             c.execute("INSERT INTO users (user_id, phone, invited_by) VALUES (%s, %s, %s)", (
-                user_id, session.get("bind_phone"), invited_by
-            ))
+                user_id, session.get("bind_phone"), invited_by))
             conn.commit()
-
     session["user_id"] = user_id
     return redirect(url_for("dice"))
 
@@ -115,7 +102,6 @@ def play_dice():
 
         plays_today, daily_reset = row
         today = date.today()
-
         if daily_reset != today:
             plays_today = 0
             c.execute("UPDATE users SET plays = 0, daily_reset = %s WHERE user_id = %s", (today, user_id))
@@ -141,14 +127,7 @@ def play_dice():
 
         remaining = 9 - plays_today
 
-    return jsonify({
-        "user": user_roll,
-        "bot": bot_roll,
-        "message": result,
-        "remaining": remaining
-    })
-    
-from flask import request
+    return jsonify({"user": user_roll, "bot": bot_roll, "message": result, "remaining": remaining})
 
 @app.route("/admin")
 def admin_dashboard():
@@ -245,7 +224,7 @@ def today_rank():
         """)
         users = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
     return render_template("rank_today.html", users=users)
-    
+
 @app.route("/user/logs")
 def user_logs():
     user_id = request.args.get("user_id")
@@ -267,7 +246,7 @@ def view_invitees():
         c.execute("SELECT user_id, username, phone, points FROM users WHERE invited_by = %s", (user_id,))
         invitees = [dict(zip([desc[0] for desc in c.description], row)) for row in c.fetchall()]
     return render_template("invitees.html", invitees=invitees)
-    
+
 @app.route("/init")
 def init_tables():
     with get_conn() as conn, conn.cursor() as c:
@@ -285,7 +264,6 @@ def init_tables():
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN DEFAULT FALSE;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_reset DATE;")
-
         c.execute("""
             CREATE TABLE IF NOT EXISTS game_logs (
                 id SERIAL PRIMARY KEY,
