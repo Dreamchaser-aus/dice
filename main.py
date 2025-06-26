@@ -18,16 +18,6 @@ def get_conn():
 
 from datetime import date
 
-def format_time(value):
-    if isinstance(value, datetime):
-        return value.strftime("%Y-%m-%d %H:%M:%S")
-    return value or ''
-
-# 后处理 users
-for u in users:
-    u["created_at"] = format_time(u.get("created_at"))
-    u["last_game_time"] = format_time(u.get("last_game_time"))
-
 def auto_reset_daily_plays():
     today = date.today()
     with get_conn() as conn, conn.cursor() as c:
@@ -203,6 +193,15 @@ def admin_dashboard():
             "blocked": sum(1 for u in users if u.get("blocked")),
             "points": sum(u["points"] or 0 for u in users)
         }
+def format_time(value):
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    return value or ''
+
+# 🔽 放在 users 查询完之后
+for u in users:
+    u["created_at"] = format_time(u.get("created_at"))
+    u["last_game_time"] = format_time(u.get("last_game_time"))
 
     return render_template("admin.html", users=users, stats=stats, request=request, keyword=keyword, page=1, total_pages=1)
 
