@@ -155,7 +155,9 @@ def admin_dashboard():
     auto_reset_daily_plays()
     keyword = request.args.get("q", "").strip()
     blocked_filter = request.args.get("filter", "").strip()
-
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    
     query = """
     SELECT 
         u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
@@ -182,6 +184,13 @@ def admin_dashboard():
         query += " AND u.blocked = TRUE"
     elif blocked_filter == "0":
         query += " AND (u.blocked = FALSE OR u.blocked IS NULL)"
+        
+    if start_date:
+        query += " AND u.created_at >= %s"
+        params.append(start_date)
+    if end_date:
+        query += " AND u.created_at <= %s"
+        params.append(end_date)    
 
     with get_conn() as conn, conn.cursor() as c:
         c.execute(query, params)
