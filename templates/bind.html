@@ -41,37 +41,25 @@
     </div>
   </div>
 
-  <script>
-    function sendBindData(user) {
-      const phone = document.getElementById('phone').value.trim();
-      if (!phone) {
-        alert('请先输入手机号');
-        return;
-      }
+ <script>
+  document.querySelector("form").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const phone = document.querySelector("#phone").value;
+    const form = e.target;
 
-      fetch('/bind/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: phone,
-          invited_by: new URLSearchParams(window.location.search).get('inviter'),
-          telegram: user
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          alert('绑定成功！');
-          location.href = "/dice";
-        } else {
-          alert('绑定失败: ' + data.error);
-        }
-      });
-    }
+    const res = await fetch(form.action, {
+      method: "POST",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: new URLSearchParams({ phone })
+    });
 
-    window.TelegramLoginWidget = {
-      dataOnauth: sendBindData
-    };
-  </script>
+    const data = await res.json();
+    alert(data.message || "提交成功");
+
+    // 可选：打开 Telegram 的绑定页面
+    window.open("https://t.me/你的Bot用户名", "_blank");
+  });
+</script>
+
 </body>
 </html>
