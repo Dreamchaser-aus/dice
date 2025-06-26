@@ -105,9 +105,10 @@ def admin_dashboard():
         LEFT JOIN (
             SELECT invited_by AS inviter_id, COUNT(*) AS invited_count
             FROM users
-            WHERE inviter_id IS NOT NULL
-            GROUP BY inviter_by
+            WHERE invited_by IS NOT NULL
+            GROUP BY invited_by
         ) inv ON u.user_id = inv.inviter_id
+
         WHERE 1=1
     """
     params = []
