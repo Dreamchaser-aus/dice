@@ -12,6 +12,7 @@
       justify-content: center;
       gap: 40px;
       perspective: 1000px;
+      margin-bottom: 20px;
     }
 
     .dice {
@@ -41,7 +42,7 @@
     .bottom { transform: rotateX( -90deg) translateZ(50px); }
 
     .btn {
-      margin-top: 30px;
+      margin-top: 20px;
       padding: 12px 30px;
       font-size: 18px;
       border: none;
@@ -51,9 +52,20 @@
       cursor: pointer;
     }
 
+    .btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
     .result {
       margin-top: 20px;
       font-size: 24px;
+    }
+
+    #remaining-info {
+      font-size: 18px;
+      margin-top: 15px;
+      color: #333;
     }
   </style>
 </head>
@@ -78,12 +90,13 @@
     <div class="face top">5</div>
     <div class="face bottom">2</div>
   </div>
-  <div id="remaining-info" class="alert alert-info mt-3">
-  🎯 今日剩余次数：<span id="remaining">{{ remaining }}</span> / 10
-  </div>
 </div>
 
-<button class="btn" onclick="roll()">🎲 投掷骰子</button>
+<div id="remaining-info">
+  🎯 今日剩余次数：<span id="remaining">{{ remaining }}</span> / 10
+</div>
+
+<button class="btn" id="roll-btn" onclick="roll()">🎲 投擲骰子</button>
 <div class="result" id="result"></div>
 
 <script>
@@ -103,6 +116,18 @@ async function roll() {
   document.getElementById("user-dice").style.transform = faceRotation[data.user];
   document.getElementById("bot-dice").style.transform = faceRotation[data.bot];
   document.getElementById("result").textContent = data.message;
+
+  const remSpan = document.getElementById("remaining");
+  const rollBtn = document.getElementById("roll-btn");
+  const current = parseInt(remSpan.textContent);
+  if (!isNaN(current) && current > 0) {
+    const newRemaining = current - 1;
+    remSpan.textContent = newRemaining;
+    if (newRemaining <= 0) {
+      rollBtn.disabled = true;
+      document.getElementById("result").textContent = "☑ 今日次数已用完，请明日再来！";
+    }
+  }
 }
 </script>
 
