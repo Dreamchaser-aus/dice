@@ -83,8 +83,8 @@ async function saveUser(userId) {
               <option value="1">是</option>
             </select>
           </td>
-          <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '' }}</td>
-          <td>{{ user.last_game_time.strftime('%Y-%m-%d %H:%M:%S') if user.last_game_time else '无' }}</td>
+          <td>{{ user.created_at }}</td>
+          <td>{{ user.last_game_time }}</td>
           <td>
             <button class="btn btn-success btn-sm" onclick="saveUser('{{ user.user_id }}')">保存</button>
             <button class="btn btn-danger btn-sm" onclick="deleteUser('{{ user.user_id }}')">删除</button>
