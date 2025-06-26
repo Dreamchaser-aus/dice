@@ -70,24 +70,60 @@ def dice():
         session["user_id"] = uid
     if "user_id" not in session:
         return redirect(url_for("login"))
-    return render_template("dice.html")
+
+    user_id = session["user_id"]
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT plays, daily_reset FROM users WHERE user_id = %s", (user_id,))
+        row = c.fetchone()
+        plays_today = row[0] or 0
+        daily_reset = row[1]
+        today = date.today()
+        if daily_reset != today:
+            plays_today = 0
+    remaining = max(0, 10 - plays_today)
+    return render_template("dice.html", remaining=remaining)
 
 @app.route("/dice/play", methods=["POST"])
 def play_dice():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "未登录"}), 401
-    user_roll = random.randint(1, 6)
-    bot_roll = random.randint(1, 6)
-    delta, result = (10, "你赢了！+10") if user_roll > bot_roll else (-5, "你输了！-5") if user_roll < bot_roll else (0, "平局")
+
     with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT plays, daily_reset FROM users WHERE user_id = %s", (user_id,))
+        row = c.fetchone()
+        if not row:
+            return jsonify({"error": "用户不存在"}), 404
+
+        plays_today, daily_reset = row
+        today = date.today()
+        
+        # 如果还没重置 today 的次数，重置为 0
+        if daily_reset != today:
+            plays_today = 0
+            c.execute("UPDATE users SET plays = 0, daily_reset = %s WHERE user_id = %s", (today, user_id))
+            conn.commit()
+
+        if plays_today >= 10:
+            return jsonify({"error": "你今天已达游戏上限（10次），请明天再来"}), 403
+
+        user_roll = random.randint(1, 6)
+        bot_roll = random.randint(1, 6)
+        delta, result = (10, "你赢了！+10") if user_roll > bot_roll else (-5, "你输了！-5") if user_roll < bot_roll else (0, "平局")
+
         c.execute("INSERT INTO game_logs (user_id, user_roll, bot_roll, result) VALUES (%s, %s, %s, %s)",
                   (user_id, user_roll, bot_roll, result))
-        c.execute("UPDATE users SET points = points + %s, plays = plays + 1, last_game_time = CURRENT_TIMESTAMP WHERE user_id = %s",
-                  (delta, user_id))
+        c.execute("""
+            UPDATE users
+            SET points = points + %s,
+                plays = plays + 1,
+                last_game_time = CURRENT_TIMESTAMP
+            WHERE user_id = %s
+        """, (delta, user_id))
         conn.commit()
-    return jsonify({"user": user_roll, "bot": bot_roll, "message": result})
 
+    return jsonify({"user": user_roll, "bot": bot_roll, "message": result})
+    
 from flask import request
 
 @app.route("/admin")
