@@ -155,12 +155,12 @@ def admin_dashboard():
     auto_reset_daily_plays()
     keyword = request.args.get("q", "").strip()
     blocked_filter = request.args.get("filter", "").strip()
-    
+
     query = """
     SELECT 
         u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
         u.created_at, u.invited_by, u.blocked,
-        inviter.username AS inviter_username,
+        inviter.username AS inviter,
         COALESCE(inv.invited_count, 0) AS invited_count
     FROM users u
     LEFT JOIN users inviter ON u.invited_by = inviter.user_id
