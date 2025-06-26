@@ -85,20 +85,6 @@ def send_telegram_message(user_id, text):
     except Exception as e:
         print(f"发送 Telegram 消息失败: {e}")  
 
-@app.route("/bind/submit", methods=["POST"])
-def bind_submit():
-    phone = request.form.get("phone")
-    inviter = request.args.get("inviter")
-
-    if not phone:
-        return "请输入手机号", 400
-
-    session["bind_phone"] = phone
-    session["invited_by"] = inviter
-    print("[DEBUG] 保存 session bind_phone:", phone)
-
-    return jsonify({"success": True, "message": "请在 Telegram 中发送手机号"})
-
 # 请求结束自动关闭连接
 @app.teardown_appcontext
 def close_db(exception):
@@ -121,13 +107,14 @@ def bind_page():
 @app.route("/bind/submit", methods=["POST"])
 def bind_submit():
     phone = request.form.get("phone")
-    inviter = request.args.get("inviter")  # 通过 URL 获取邀请人 ID
+    inviter = request.args.get("inviter")
 
     if not phone:
         return "请输入手机号", 400
 
     session["bind_phone"] = phone
-    session["invited_by"] = inviter  # 保存到 session 中供后续使用
+    session["invited_by"] = inviter
+    print("[DEBUG] 保存 session bind_phone:", phone)
 
     return jsonify({"success": True, "message": "请在 Telegram 中发送手机号"})
     
