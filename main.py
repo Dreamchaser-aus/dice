@@ -102,7 +102,7 @@ def login():
 
 @app.route("/bind")
 def bind_page():
-    return redirect(url_for("telegram_instruction_page"))
+    return render_template("bind.html")
 
 @app.route("/bind/submit", methods=["POST"])
 def bind_submit():
