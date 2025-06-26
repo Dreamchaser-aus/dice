@@ -108,14 +108,14 @@ def bind_page():
 def bind_submit():
     phone = request.form.get("phone")
     inviter = request.args.get("inviter")
+    print("[DEBUG] phone:", phone)
+    print("[DEBUG] inviter:", inviter)
 
     if not phone:
         return "请输入手机号", 400
 
     session["bind_phone"] = phone
     session["invited_by"] = inviter
-    print("[DEBUG] 保存 session bind_phone:", phone)
-
     return jsonify({"success": True, "message": "请在 Telegram 中发送手机号"})
     
 @app.route("/auth", methods=["POST"])
