@@ -18,6 +18,16 @@ def get_conn():
 
 from datetime import date
 
+def format_time(value):
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    return value or ''
+
+# 后处理 users
+for u in users:
+    u["created_at"] = format_time(u.get("created_at"))
+    u["last_game_time"] = format_time(u.get("last_game_time"))
+
 def auto_reset_daily_plays():
     today = date.today()
     with get_conn() as conn, conn.cursor() as c:
