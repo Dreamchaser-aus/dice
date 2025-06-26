@@ -1,11 +1,49 @@
 <!DOCTYPE html>
-<html>
-<head><title>验证手机</title></head>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>绑定账号</title>
+</head>
 <body>
-  <h2>请输入您的手机号</h2>
-  <form action="/bind/submit" method="post">
-    <input type="tel" name="phone" required placeholder="60123456789">
-    <button type="submit">提交</button>
-  </form>
+  <div class="container">
+    <h3>绑定账号</h3>
+    <form id="bindForm">
+      <label>手机号：</label>
+      <input type="text" id="phone" name="phone" required>
+      <br><br>
+      <div id="telegram-button"></div>
+    </form>
+  </div>
+
+  <script src="https://telegram.org/js/telegram-widget.js?7"
+          data-telegram-login="mingameh5_bot"  <!-- ⚠️ 替换为你自己的 bot -->
+          data-size="large"
+          data-userpic="false"
+          data-request-access="write"
+          data-userpic="false"
+          data-callback="onTelegramAuth">
+  </script>
+
+  <script>
+    function onTelegramAuth(user) {
+      const phone = document.getElementById("phone").value;
+      if (!phone) {
+        alert("请输入手机号再点击授权");
+        return;
+      }
+      fetch("/bind/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...user, phone })
+      }).then(res => res.json()).then(data => {
+        if (data.success) {
+          alert("绑定成功！");
+          window.location.href = "/dice";
+        } else {
+          alert("绑定失败：" + (data.error || "未知错误"));
+        }
+      });
+    }
+  </script>
 </body>
 </html>
