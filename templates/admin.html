@@ -70,7 +70,7 @@ async function saveUser(userId) {
           <td>
             <input type="number" id="plays-{{ user.user_id }}" value="{{ user.plays or 0 }}" class="form-control form-control-sm">
           </td>
-          <td>{{ user.inviter or '无' }}</td>
+          <td>{{ user.inviter_username or '无' }}</td>
           <td>
             已邀请 {{ user.invited_count }} 人
             {% if (user.invited_count or 0) > 0 %}
