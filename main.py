@@ -157,20 +157,21 @@ def admin_dashboard():
     blocked_filter = request.args.get("filter", "").strip()
     
     query = """
-        SELECT 
-            u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
-            u.created_at, u.inviter_id, u.blocked,
-            inv.invited_count
-        FROM users u
-        LEFT JOIN (
-            SELECT invited_by AS inviter_id, COUNT(*) AS invited_count
-            FROM users
-            WHERE invited_by IS NOT NULL
-            GROUP BY invited_by
-        ) inv ON u.user_id = inv.inviter_id
-
-        WHERE 1=1
-    """
+    SELECT 
+        u.user_id, u.username, u.phone, u.points, u.plays, u.last_game_time,
+        u.created_at, u.invited_by, u.blocked,
+        inviter.username AS inviter_username,
+        COALESCE(inv.invited_count, 0) AS invited_count
+    FROM users u
+    LEFT JOIN users inviter ON u.invited_by = inviter.user_id
+    LEFT JOIN (
+        SELECT invited_by, COUNT(*) AS invited_count
+        FROM users
+        WHERE invited_by IS NOT NULL
+        GROUP BY invited_by
+    ) inv ON u.user_id = inv.invited_by
+    WHERE 1=1
+"""    
     params = []
 
     if keyword:
