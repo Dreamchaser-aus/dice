@@ -35,8 +35,8 @@ async function deleteUser(userId) {
     <h2 class="mb-4">Telegram 用户后台管理</h2>
 <form class="input-group mb-3" method="get" action="/admin">
   <input type="text" class="form-control" name="q" placeholder="用户名 / 手机号 / 邀请人用户名" value="{{ request.args.q or '' }}">
-  <input type="date" class="form-control" name="start_date" value="{{ request.args.start_date or '' }}" style="max-width: 180px;" title="注册起始日期">
-  <input type="date" class="form-control" name="end_date" value="{{ request.args.end_date or '' }}" style="max-width: 180px;" title="注册结束日期">
+  <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}" style="max-width: 180px;" title="注册起始日期">
+  <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}" style="max-width: 180px;" title="注册结束日期">
   <select class="form-select" name="filter" style="max-width:150px">
     <option value="">全部</option>
     <option value="0" {% if request.args.filter == '0' %}selected{% endif %}>未封禁</option>
@@ -103,17 +103,17 @@ async function deleteUser(userId) {
     <ul class="pagination justify-content-center mt-4">
     {% if page > 1 %}
     <li class="page-item">
-      <a class="page-link" href="/admin?q={{ keyword }}&page={{ page - 1 }}">上一页</a>
+      <a class="page-link" href="/admin?q={{ keyword }}&start_date={{ request.args.get('start_date', '') }}&end_date={{ request.args.get('end_date', '') }}&filter={{ request.args.get('filter', '') }}&page={{ page - 1 }}">上一页</a>
     </li>
     {% endif %}
     {% for p in range(1, total_pages + 1) %}
     <li class="page-item {% if p == page %}active{% endif %}">
-      <a class="page-link" href="/admin?q={{ keyword }}&page={{ p }}">{{ p }}</a>
+      <a class="page-link" href="/admin?q={{ keyword }}&start_date={{ request.args.get('start_date', '') }}&end_date={{ request.args.get('end_date', '') }}&filter={{ request.args.get('filter', '') }}&page={{ p }}">{{ p }}</a>
     </li>
     {% endfor %}
     {% if page < total_pages %}
     <li class="page-item">
-      <a class="page-link" href="/admin?q={{ keyword }}&page={{ page + 1 }}">下一页</a>
+      <a class="page-link" href="/admin?q={{ keyword }}&start_date={{ request.args.get('start_date', '') }}&end_date={{ request.args.get('end_date', '') }}&filter={{ request.args.get('filter', '') }}&page={{ page + 1 }}">下一页</a>
     </li>
     {% endif %}
   </ul>
