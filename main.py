@@ -1,6 +1,7 @@
 import os
 import random
 import psycopg2
+from flask import  Flask
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from dotenv import load_dotenv
 from datetime import datetime
@@ -15,20 +16,26 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
+from datetime import date
+
 def auto_reset_daily_plays():
     today = date.today()
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("""
+            UPDATE users
+            SET plays = 10,
+                daily_reset = %s
+            WHERE daily_reset IS NULL OR daily_reset < %s
+        """, (today, today))
+        conn.commit()
 
-    conn = get_db()
-    c = conn.cursor()
-    # 仅重置那些还没更新今天的用户
-    c.execute("""
-        UPDATE users 
-        SET plays = plays + 10,
-            daily_reset = %s
-        WHERE daily_reset IS NULL OR daily_reset < %s
-    """, (today, today))
-    conn.commit()    
-
+# 请求结束自动关闭连接
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+        
 @app.route("/")
 def index():
     return redirect(url_for("login"))
@@ -96,7 +103,7 @@ def admin_dashboard():
             inv.invited_count
         FROM users u
         LEFT JOIN (
-            SELECT inviter_id, COUNT(*) AS invited_count
+            SELECT invited_by AS inviter_id, COUNT(*) AS invited_count
             FROM users
             WHERE inviter_id IS NOT NULL
             GROUP BY inviter_id
@@ -207,6 +214,7 @@ def init_tables():
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_by BIGINT;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN DEFAULT FALSE;")
         c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_reset DATE;")
 
         c.execute("""
             CREATE TABLE IF NOT EXISTS game_logs (
