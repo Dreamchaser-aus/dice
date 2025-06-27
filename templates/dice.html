@@ -50,8 +50,6 @@
       height: 100px;
       position: absolute;
       transform-style: preserve-3d;
-      top: 20px;
-      left: 20px;
       border-radius: 16px;
     }
 
@@ -177,6 +175,12 @@ function animateDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
   const [targetX, targetY] = faceRotation[targetFace];
   const [startX, startY] = currentAngles[diceId];
+
+  const offsetX = Math.random() * 100;
+  const offsetY = Math.random() * 100;
+  const jitterX = 10 + Math.random() * 10;
+  const jitterY = 10 + Math.random() * 10;
+
   const extraRotate = 360 * (3 + Math.floor(Math.random() * 3));
   const duration = 1500;
   const startTime = performance.now();
@@ -186,10 +190,13 @@ function animateDice(diceId, targetFace) {
     const t = Math.min(elapsed / duration, 1);
     const eased = easeOutCubic(t);
 
+    const posX = offsetX + Math.sin(t * Math.PI * 3) * jitterX * (1 - t);
+    const posY = offsetY - 80 * t * (1 - t) + Math.sin(t * Math.PI * 5) * jitterY * (1 - t);
+
     const currentX = startX + (targetX + extraRotate - startX) * eased;
     const currentY = startY + (targetY + extraRotate - startY) * eased;
 
-    dice.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
+    dice.style.transform = `translate(${posX}px, ${posY}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
 
     if (t < 1) {
       requestAnimationFrame(animate);
