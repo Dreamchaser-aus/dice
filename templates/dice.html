@@ -19,8 +19,8 @@
     }
 
     .dice-container {
-      width: 200px;
-      height: 200px;
+      width: 220px;
+      height: 220px;
       background: #fff;
       border: 3px dashed #aaa;
       border-radius: 12px;
@@ -33,8 +33,6 @@
       height: 100px;
       position: absolute;
       transform-style: preserve-3d;
-      top: 20px;
-      left: 20px;
     }
 
     .face {
@@ -129,12 +127,10 @@ const faceRotation = {
   6: [0, 180]
 };
 
-// 缓动函数
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-// 每颗骰子当前角度记录（便于连续动画）
 const currentAngles = {
   "user-dice": [0, 0],
   "bot-dice": [0, 0]
@@ -145,7 +141,6 @@ function animateDice(diceId, targetFace) {
   const [targetX, targetY] = faceRotation[targetFace];
   const [startX, startY] = currentAngles[diceId];
 
-  // 随机平移轨迹（在整个容器范围内）
   const offsetX = 20 + Math.random() * 60;
   const offsetY = 20 + Math.random() * 60;
   const jitterX = 10 + Math.random() * 10;
@@ -162,7 +157,6 @@ function animateDice(diceId, targetFace) {
 
     const posX = offsetX + Math.sin(t * Math.PI * 3) * jitterX * (1 - t);
     const posY = offsetY - 4 * 40 * t * (1 - t) + Math.sin(t * Math.PI * 5) * jitterY * (1 - t);
-
     const currentX = startX + (targetX + extraRotate - startX) * eased;
     const currentY = startY + (targetY + extraRotate - startY) * eased;
 
@@ -171,14 +165,6 @@ function animateDice(diceId, targetFace) {
     if (t < 1) {
       requestAnimationFrame(animate);
     } else {
-      currentAngles[diceId] = [targetX, targetY];
-    }
-  }
-
-  requestAnimationFrame(animate);
-}
-
-      // 动画完成，更新记录角度（保留最终状态）
       currentAngles[diceId] = [targetX, targetY];
     }
   }
@@ -209,6 +195,6 @@ async function roll() {
   }
 }
 </script>
-  
+
 </body>
 </html>
