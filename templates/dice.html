@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>🎲 骰子游戏</title>
   <style>
     body {
@@ -19,8 +19,8 @@
     }
 
     .dice-container {
-      width: 220px;
-      height: 220px;
+      width: 200px;
+      height: 200px;
       background: #fff;
       border: 3px dashed #aaa;
       border-radius: 12px;
@@ -33,6 +33,8 @@
       height: 100px;
       position: absolute;
       transform-style: preserve-3d;
+      top: 20px;
+      left: 20px;
     }
 
     .face {
@@ -136,129 +138,104 @@ const currentAngles = {
   "bot-dice": [0, 0]
 };
 
-// 工具：随机选项
-function pickRandom(array) {
-  return array[Math.floor(Math.random() * array.length)];
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ✨ 多种旋转动画逻辑
 const spinVariants = [
-  function classicSpin(diceId, targetFace) {
+  function classicSpin(diceId, face) {
     const dice = document.getElementById(diceId);
-    const [targetX, targetY] = faceRotation[targetFace];
-    const [startX, startY] = currentAngles[diceId];
-    const offsetX = 20 + Math.random() * 40;
-    const offsetY = 20 + Math.random() * 30;
-    const extraRotate = 360 * (2 + Math.random() * 2);
+    const [tx, ty] = faceRotation[face];
+    const [sx, sy] = currentAngles[diceId];
+    const rot = 360 * (2 + Math.random() * 2);
+    const start = performance.now();
     const duration = 1200;
-    const startTime = performance.now();
-
-    function animate(time) {
-      const t = Math.min((time - startTime) / duration, 1);
-      const eased = easeOutCubic(t);
-      const posY = offsetY - 4 * 40 * t * (1 - t);
-      const currentX = startX + (targetX + extraRotate - startX) * eased;
-      const currentY = startY + (targetY + extraRotate - startY) * eased;
-      dice.style.transform = `translate(${offsetX}px, ${posY}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-      if (t < 1) requestAnimationFrame(animate);
-      else currentAngles[diceId] = [targetX, targetY];
+    function anim(t) {
+      const p = Math.min((t - start) / duration, 1);
+      const e = easeOutCubic(p);
+      const y = 40 - 4 * 40 * p * (1 - p);
+      const cx = sx + (tx + rot - sx) * e;
+      const cy = sy + (ty + rot - sy) * e;
+      dice.style.transform = `translate(40px, ${y}px) rotateX(${cx}deg) rotateY(${cy}deg)`;
+      if (p < 1) requestAnimationFrame(anim); else currentAngles[diceId] = [tx, ty];
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(anim);
   },
 
-  function wildBounce(diceId, targetFace) {
+  function wildBounce(diceId, face) {
     const dice = document.getElementById(diceId);
-    const [targetX, targetY] = faceRotation[targetFace];
-    const [startX, startY] = currentAngles[diceId];
-    const offsetX = 30 + Math.random() * 60;
-    const offsetY = 30 + Math.random() * 40;
-    const jitterX = 20 + Math.random() * 20;
-    const jitterY = 20 + Math.random() * 20;
-    const extraRotate = 360 * (4 + Math.random() * 3);
+    const [tx, ty] = faceRotation[face];
+    const [sx, sy] = currentAngles[diceId];
+    const rot = 360 * (3 + Math.random() * 2);
+    const jitterX = 30, jitterY = 30;
+    const offsetX = 40 + Math.random() * 30;
+    const start = performance.now();
     const duration = 1600;
-    const startTime = performance.now();
-
-    function animate(time) {
-      const t = Math.min((time - startTime) / duration, 1);
-      const eased = easeOutCubic(t);
-      const posX = offsetX + Math.sin(t * Math.PI * 4) * jitterX * (1 - t);
-      const posY = offsetY - 4 * 60 * t * (1 - t) + Math.sin(t * Math.PI * 5) * jitterY * (1 - t);
-      const currentX = startX + (targetX + extraRotate - startX) * eased;
-      const currentY = startY + (targetY + extraRotate - startY) * eased;
-      dice.style.transform = `translate(${posX}px, ${posY}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-      if (t < 1) requestAnimationFrame(animate);
-      else currentAngles[diceId] = [targetX, targetY];
+    function anim(t) {
+      const p = Math.min((t - start) / duration, 1);
+      const e = easeOutCubic(p);
+      const x = offsetX + Math.sin(p * Math.PI * 3) * jitterX * (1 - p);
+      const y = 60 - 4 * 60 * p * (1 - p) + Math.sin(p * Math.PI * 4) * jitterY * (1 - p);
+      const cx = sx + (tx + rot - sx) * e;
+      const cy = sy + (ty + rot - sy) * e;
+      dice.style.transform = `translate(${x}px, ${y}px) rotateX(${cx}deg) rotateY(${cy}deg)`;
+      if (p < 1) requestAnimationFrame(anim); else currentAngles[diceId] = [tx, ty];
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(anim);
   },
 
-  function tightSpin(diceId, targetFace) {
+  function tightSpin(diceId, face) {
     const dice = document.getElementById(diceId);
-    const [targetX, targetY] = faceRotation[targetFace];
-    const [startX, startY] = currentAngles[diceId];
-    const offsetX = 40;
-    const offsetY = 20;
-    const extraRotate = 360 * (2 + Math.random());
+    const [tx, ty] = faceRotation[face];
+    const [sx, sy] = currentAngles[diceId];
+    const rot = 360 * (1 + Math.random() * 1.5);
+    const start = performance.now();
     const duration = 900;
-    const startTime = performance.now();
-
-    function animate(time) {
-      const t = Math.min((time - startTime) / duration, 1);
-      const eased = easeOutCubic(t);
-      const posY = offsetY - 4 * 30 * t * (1 - t);
-      const currentX = startX + (targetX + extraRotate - startX) * eased;
-      const currentY = startY + (targetY + extraRotate - startY) * eased;
-      dice.style.transform = `translate(${offsetX}px, ${posY}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-      if (t < 1) requestAnimationFrame(animate);
-      else currentAngles[diceId] = [targetX, targetY];
+    function anim(t) {
+      const p = Math.min((t - start) / duration, 1);
+      const e = easeOutCubic(p);
+      const y = 30 - 4 * 30 * p * (1 - p);
+      const cx = sx + (tx + rot - sx) * e;
+      const cy = sy + (ty + rot - sy) * e;
+      dice.style.transform = `translate(50px, ${y}px) rotateX(${cx}deg) rotateY(${cy}deg)`;
+      if (p < 1) requestAnimationFrame(anim); else currentAngles[diceId] = [tx, ty];
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(anim);
   },
 
-  function floatFlip(diceId, targetFace) {
+  function floatFlip(diceId, face) {
     const dice = document.getElementById(diceId);
-    const [targetX, targetY] = faceRotation[targetFace];
-    const [startX, startY] = currentAngles[diceId];
-    const offsetX = 30 + Math.random() * 20;
-    const extraRotate = 360 * (1 + Math.random() * 2);
-    const duration = 1500;
-    const startTime = performance.now();
-
-    function animate(time) {
-      const t = Math.min((time - startTime) / duration, 1);
-      const eased = easeOutCubic(t);
-      const height = 80 + Math.random() * 40;
-      const posY = -4 * height * t * (1 - t);
-      const currentX = startX + (targetX + extraRotate - startX) * eased;
-      const currentY = startY + (targetY + extraRotate - startY) * eased;
-      dice.style.transform = `translate(${offsetX}px, ${posY}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-      if (t < 1) requestAnimationFrame(animate);
-      else currentAngles[diceId] = [targetX, targetY];
+    const [tx, ty] = faceRotation[face];
+    const [sx, sy] = currentAngles[diceId];
+    const rot = 360 * (1 + Math.random() * 1.5);
+    const offsetX = 30 + Math.random() * 30;
+    const height = 80 + Math.random() * 40;
+    const start = performance.now();
+    const duration = 1400;
+    function anim(t) {
+      const p = Math.min((t - start) / duration, 1);
+      const e = easeOutCubic(p);
+      const y = -4 * height * p * (1 - p);
+      const cx = sx + (tx + rot - sx) * e;
+      const cy = sy + (ty + rot - sy) * e;
+      dice.style.transform = `translate(${offsetX}px, ${y}px) rotateX(${cx}deg) rotateY(${cy}deg)`;
+      if (p < 1) requestAnimationFrame(anim); else currentAngles[diceId] = [tx, ty];
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(anim);
   }
 ];
 
-// 🎲 掷骰子主函数
 async function roll() {
   const res = await fetch("/dice/play", { method: "POST" });
-
   if (res.status === 403) {
     document.getElementById("result").textContent = "❌ 今日次数已用完";
     document.querySelector("button.btn").disabled = true;
     return;
   }
-
   const data = await res.json();
-
-  const userSpin = pickRandom(spinVariants);
-  const botSpin = pickRandom(spinVariants);
-
-  userSpin("user-dice", data.user);
-  botSpin("bot-dice", data.bot);
-
+  pickRandom(spinVariants)("user-dice", data.user);
+  pickRandom(spinVariants)("bot-dice", data.bot);
   document.getElementById("result").textContent = data.message;
-
   const remainingEl = document.getElementById("remaining");
   let remaining = parseInt(remainingEl.textContent);
   if (remaining > 0) remainingEl.textContent = remaining - 1;
