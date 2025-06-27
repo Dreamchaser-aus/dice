@@ -74,7 +74,18 @@ def bind_telegram():
         conn.commit()
 
     session["user_id"] = user_id
-    send_telegram_message(user_id, f"✅ 您已成功绑定手机号：{phone}")
+    clean_phone = phone.replace(" ", "").replace("+86", "")
+    if clean_phone.startswith("0"):
+        clean_phone = clean_phone[1:]
+
+    login_msg = (
+        f"✅ 您已成功绑定手机号：{phone}\n\n"
+        f"🎮 请前往游戏页面输入该手机号以进入游戏\n"
+        f"⚠️ 登录时建议输入格式为：{clean_phone}\n\n"
+        f"👉 进入游戏：https://yourgame.com/"
+    )
+    send_telegram_message(user_id, login_msg)
+
     return jsonify({"success": True})
     
 def send_telegram_message(user_id, text):
