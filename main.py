@@ -92,23 +92,23 @@ def close_db(exception):
     if db is not None:
         db.close()
         
-@app.route("/")
+@app.route("/", methods=["GET"])
 def index():
-    return redirect(url_for("login"))
+    return render_template("login.html")
 
 @app.route("/login", methods=["POST"])
 def login():
     phone = request.form.get("phone")
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT telegram_id FROM users WHERE phone = %s", (phone,))
+    cur.execute("SELECT user_id FROM users WHERE phone = %s", (phone,))
     result = cur.fetchone()
     cur.close()
     conn.close()
 
     if result:
         telegram_id = result[0]
-        return redirect(f"/game?tid={telegram_id}")
+        return redirect(f"/dice?uid={user_id}")
     else:
         return '''
         <html>
