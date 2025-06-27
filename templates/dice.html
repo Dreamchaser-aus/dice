@@ -88,20 +88,21 @@
 
 <div class="dice-box">
   <div class="dice" id="user-dice">
-    <div class="face front"><img src="dice 1.png" alt="1" /></div>
-    <div class="face back"><img src="dice 6.png" alt="6" /></div>
-    <div class="face right"><img src="dice 3.png" alt="3" /></div>
-    <div class="face left"><img src="dice 4.png" alt="4" /></div>
-    <div class="face top"><img src="dice 5.png" alt="5" /></div>
-    <div class="face bottom"><img src="dice 2.png" alt="2" /></div>
+    <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
+    <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
+    <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
+    <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
+    <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
+    <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
   </div>
+
   <div class="dice" id="bot-dice">
-    <div class="face front"><img src="dice 1.png" alt="1" /></div>
-    <div class="face back"><img src="dice 6.png" alt="6" /></div>
-    <div class="face right"><img src="dice 3.png" alt="3" /></div>
-    <div class="face left"><img src="dice 4.png" alt="4" /></div>
-    <div class="face top"><img src="dice 5.png" alt="5" /></div>
-    <div class="face bottom"><img src="dice 2.png" alt="2" /></div>
+    <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
+    <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
+    <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
+    <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
+    <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
+    <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
   </div>
 </div>
 
