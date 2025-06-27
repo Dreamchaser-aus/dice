@@ -55,11 +55,13 @@ def bind_telegram():
         return jsonify({"success": False, "error": "缺少手机号"})
 
     with get_conn() as conn, conn.cursor() as c:
+        # 检查手机号是否被其他账号绑定
         c.execute("SELECT user_id FROM users WHERE phone = %s AND user_id != %s", (phone, user_id))
         existing = c.fetchone()
         if existing:
             return jsonify({"success": False, "error": "该手机号已被绑定其他账号"})
 
+        # 新增或更新用户记录
         c.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
         if not c.fetchone():
             c.execute("""
@@ -74,6 +76,8 @@ def bind_telegram():
         conn.commit()
 
     session["user_id"] = user_id
+
+    # ✅ 登录说明信息
     clean_phone = phone.replace(" ", "").replace("+86", "")
     if clean_phone.startswith("0"):
         clean_phone = clean_phone[1:]
@@ -82,7 +86,7 @@ def bind_telegram():
         f"✅ 您已成功绑定手机号：{phone}\n\n"
         f"🎮 请前往游戏页面输入该手机号以进入游戏\n"
         f"⚠️ 登录时建议输入格式为：{clean_phone}\n\n"
-        f"👉 进入游戏：https://t.me/mingameh5_bot/dicegame"
+        f"👉 进入游戏：https://yourgame.com/"
     )
     send_telegram_message(user_id, login_msg)
 
