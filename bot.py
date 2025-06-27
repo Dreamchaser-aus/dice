@@ -90,7 +90,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ 绑定失败，请稍后重试。")
         return
 
-    game_url = f"https://dice-production-1f4e.up.railway.app/dice?uid={user_id}"
+    game_url = f"https://t.me/mingameh5_bot/dicegame"
     await update.message.reply_text(
         f"✅ 手机号绑定成功！\n点击开始游戏：{game_url}",
         disable_web_page_preview=True
