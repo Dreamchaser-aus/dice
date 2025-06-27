@@ -129,31 +129,40 @@ const faceRotation = {
   6: "rotateX(0deg) rotateY(180deg)",
 };
 
-// 抛物线 + 旋转 + 独立容器内运动
+// 缓动函数（越到后面越慢）
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// 抛物线 + 缓慢减速 + 自转 + 落地朝向
 function throwDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-  let startTime = performance.now();
-  const startX = 10 + Math.random() * 20;
+  const startX = 10 + Math.random() * 30;
   const amplitude = 40 + Math.random() * 30;
-  let rotation = 0;
+  let totalRotation = 1440 + Math.random() * 360; // 最终旋转角度（4~5圈）
+  let startTime = performance.now();
 
   function animate(time) {
     const elapsed = (time - startTime) / 1000; // 秒
-    if (elapsed >= 1) {
-      dice.style.transition = "transform 0.4s ease-out";
+    const duration = 1.2;
+    let t = Math.min(elapsed / duration, 1); // 0 ~ 1
+
+    const eased = easeOutCubic(t);
+    const yOffset = -4 * amplitude * t * (1 - t);
+    const rotation = totalRotation * (1 - Math.pow(1 - t, 3)); // 缓慢减速
+
+    dice.style.transform = `translate(${startX}px, ${yOffset}px) rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // 最终落地定位目标点数
+      dice.style.transition = "transform 0.5s ease-out";
       dice.style.transform = faceRotation[targetFace];
       setTimeout(() => {
         dice.style.transition = "";
       }, 500);
-      return;
     }
-
-    const yOffset = -4 * amplitude * elapsed * (1 - elapsed);
-    rotation += 30;
-
-    dice.style.transform = `translate(${startX}px, ${yOffset}px) rotateX(${rotation}deg) rotateY(${rotation}deg)`;
-
-    requestAnimationFrame(animate);
   }
 
   requestAnimationFrame(animate);
