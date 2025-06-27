@@ -121,47 +121,58 @@
 
 <script>
 const faceRotation = {
-  1: "rotateX(0deg) rotateY(0deg)",
-  2: "rotateX(-90deg) rotateY(0deg)",
-  3: "rotateX(0deg) rotateY(-90deg)",
-  4: "rotateX(0deg) rotateY(90deg)",
-  5: "rotateX(90deg) rotateY(0deg)",
-  6: "rotateX(0deg) rotateY(180deg)",
+  1: [0, 0],
+  2: [-90, 0],
+  3: [0, -90],
+  4: [0, 90],
+  5: [90, 0],
+  6: [0, 180]
 };
 
-// 缓动函数（越到后面越慢）
+// 缓动函数（easeOutCubic）
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-// 抛物线 + 缓慢减速 + 自转 + 落地朝向
-function throwDice(diceId, targetFace) {
+// 获取当前旋转角度（从 transform 属性中解析）
+function getCurrentRotation(dice) {
+  const style = window.getComputedStyle(dice);
+  const transform = style.transform;
+  if (!transform || transform === 'none') return [0, 0];
+
+  const values = transform.match(/matrix3d\(([^)]+)\)/);
+  if (!values) return [0, 0];
+
+  const matrix = values[1].split(',').map(parseFloat);
+
+  // 提取 X, Y 旋转角度（简化版）
+  const sinX = -matrix[9];
+  const rotX = Math.asin(sinX);
+  const rotY = Math.atan2(matrix[8], matrix[10]);
+
+  return [rotX * (180 / Math.PI), rotY * (180 / Math.PI)];
+}
+
+// 平滑从当前角度过渡到目标角度
+function smoothRotateTo(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-  const startX = 10 + Math.random() * 30;
-  const amplitude = 40 + Math.random() * 30;
-  let totalRotation = 1440 + Math.random() * 360; // 最终旋转角度（4~5圈）
-  let startTime = performance.now();
+  const [endX, endY] = faceRotation[targetFace];
+
+  const [startX, startY] = getCurrentRotation(dice);
+  const totalDuration = 1000; // ms
+  const startTime = performance.now();
 
   function animate(time) {
-    const elapsed = (time - startTime) / 1000; // 秒
-    const duration = 1.2;
-    let t = Math.min(elapsed / duration, 1); // 0 ~ 1
-
+    const t = Math.min((time - startTime) / totalDuration, 1);
     const eased = easeOutCubic(t);
-    const yOffset = -4 * amplitude * t * (1 - t);
-    const rotation = totalRotation * (1 - Math.pow(1 - t, 3)); // 缓慢减速
 
-    dice.style.transform = `translate(${startX}px, ${yOffset}px) rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+    const currentX = startX + (endX - startX) * eased;
+    const currentY = startY + (endY - startY) * eased;
+
+    dice.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
 
     if (t < 1) {
       requestAnimationFrame(animate);
-    } else {
-      // 最终落地定位目标点数
-      dice.style.transition = "transform 0.5s ease-out";
-      dice.style.transform = faceRotation[targetFace];
-      setTimeout(() => {
-        dice.style.transition = "";
-      }, 500);
     }
   }
 
@@ -179,8 +190,8 @@ async function roll() {
 
   const data = await res.json();
 
-  throwDice("user-dice", data.user);
-  throwDice("bot-dice", data.bot);
+  smoothRotateTo("user-dice", data.user);
+  smoothRotateTo("bot-dice", data.bot);
   document.getElementById("result").textContent = data.message;
 
   const remainingEl = document.getElementById("remaining");
