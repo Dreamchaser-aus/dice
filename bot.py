@@ -8,12 +8,13 @@ import nest_asyncio
 nest_asyncio.apply()
 
 from dotenv import load_dotenv
-from telegram.ext import CallbackQueryHandler
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
+from telegram import (
+    Update, KeyboardButton, ReplyKeyboardMarkup,
+    InlineKeyboardMarkup, InlineKeyboardButton
+)
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
-    ContextTypes, filters
+    CallbackQueryHandler, ContextTypes, filters
 )
 
 load_dotenv()
@@ -26,6 +27,22 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
+# --- Utilities ---
+def get_user_id(update: Update):
+    if update.message:
+        return update.message.from_user.id
+    if update.callback_query:
+        return update.callback_query.from_user.id
+    return None
+
+def get_chat_id(update: Update):
+    if update.message:
+        return update.message.chat_id
+    if update.callback_query:
+        return update.callback_query.message.chat_id
+    return None
+
+# --- Command: /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📱 绑定手机号", callback_data="bind")],
@@ -36,14 +53,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🎲 欢迎使用骰子游戏 Bot！请选择一个操作：", reply_markup=markup)
-    
-async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.callback_query:
-        await update.callback_query.answer()
-        chat_id = update.callback_query.message.chat_id
-    else:
-        chat_id = update.message.chat_id
 
+# --- Command: bind ---
+async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = get_chat_id(update)
     contact_button = KeyboardButton("📱 发送手机号", request_contact=True)
     markup = ReplyKeyboardMarkup([[contact_button]], resize_keyboard=True, one_time_keyboard=True)
     await context.bot.send_message(chat_id=chat_id, text="请点击下方按钮发送手机号完成绑定", reply_markup=markup)
@@ -51,21 +64,23 @@ async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Contact Handler ---
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.contact
-    user_id = update.callback_query.from_user.id  # ✅ 正确方式
+    user_id = update.message.from_user.id
     phone = contact.phone_number
 
-    # 存入数据库
-    from main import get_conn
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO users (user_id, username, phone)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (user_id) DO UPDATE
-            SET phone = EXCLUDED.phone
-        """, (user_id, update.message.from_user.username, phone))
-        conn.commit()
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO users (user_id, username, phone)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (user_id) DO UPDATE
+                SET phone = EXCLUDED.phone
+            """, (user_id, update.message.from_user.username, phone))
+            conn.commit()
+    except Exception as e:
+        logging.exception("数据库保存手机号失败")
+        await update.message.reply_text("❌ 绑定失败，请稍后重试。")
+        return
 
-    # 给出自动登录链接
     game_url = f"https://dice-production-1f4e.up.railway.app/dice?uid={user_id}"
     await update.message.reply_text(
         f"✅ 手机号绑定成功！\n点击开始游戏：{game_url}",
@@ -74,38 +89,52 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Command: /rank ---
 async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT username, points FROM users WHERE points IS NOT NULL ORDER BY points DESC LIMIT 10")
-        rows = c.fetchall()
+    chat_id = get_chat_id(update)
+    try:
+        with get_conn() as conn, conn.cursor() as c:
+            c.execute("SELECT username, points FROM users WHERE points IS NOT NULL ORDER BY points DESC LIMIT 10")
+            rows = c.fetchall()
+    except Exception as e:
+        logging.exception("查询排行榜失败")
+        await context.bot.send_message(chat_id=chat_id, text="⚠️ 查询失败，请稍后重试。")
+        return
 
     if not rows:
-        await update.message.reply_text("暂无排行榜数据。")
+        await context.bot.send_message(chat_id=chat_id, text="暂无排行榜数据。")
         return
 
     msg = "🏆 当前积分排行榜：\n"
     for i, (name, pts) in enumerate(rows, 1):
         msg += f"{i}. {name or '匿名'} - {pts} 分\n"
-    await update.message.reply_text(msg)
-    
-async def share(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.callback_query.from_user.id  # ✅ 正确方式
-    invite_link = f"https://dice-production-1f4e.up.railway.app/bind?inviter={user_id}"
-    await update.message.reply_text(f"📨 分享你的邀请链接给好友：\n{invite_link}")   
-    
-# --- Command: /invitees ---
-async def invitees(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.callback_query.from_user.id  # ✅ 正确方式
+    await context.bot.send_message(chat_id=chat_id, text=msg)
 
-    with get_conn() as conn, conn.cursor() as c:
-        c.execute("""
-            SELECT username, phone, points
-            FROM users
-            WHERE invited_by = %s
-        """, (user_id,))
-        rows = c.fetchall()
+# --- Command: share ---
+async def share(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = get_chat_id(update)
+    user_id = get_user_id(update)
+    invite_link = f"https://dice-production-1f4e.up.railway.app/bind?inviter={user_id}"
+    await context.bot.send_message(chat_id=chat_id, text=f"📨 分享你的邀请链接给好友：\n{invite_link}")
+
+# --- Command: invitees ---
+async def invitees(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = get_chat_id(update)
+    user_id = get_user_id(update)
+
+    try:
+        with get_conn() as conn, conn.cursor() as c:
+            c.execute("""
+                SELECT username, phone, points
+                FROM users
+                WHERE invited_by = %s
+            """, (user_id,))
+            rows = c.fetchall()
+    except Exception as e:
+        logging.exception("查询邀请失败")
+        await context.bot.send_message(chat_id=chat_id, text="⚠️ 查询失败，请稍后重试。")
+        return
 
     if not rows:
-        await update.message.reply_text("你还没有邀请任何好友。")
+        await context.bot.send_message(chat_id=chat_id, text="你还没有邀请任何好友。")
         return
 
     msg = f"📋 你已邀请 {len(rows)} 位好友：\n"
@@ -113,9 +142,9 @@ async def invitees(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = username or phone or "匿名"
         msg += f"{i}. {name} - {points or 0} 分\n"
 
-    await update.message.reply_text(msg)
-    
-# --- Command: /help ---
+    await context.bot.send_message(chat_id=chat_id, text=msg)
+
+# --- Command: help ---
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "🤖 Bot 支持的指令如下：\n\n"
@@ -125,11 +154,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/rank - 查看排行榜\n"
         "/help - 显示帮助信息\n"
     )
-    await update.message.reply_text(help_text)
+    chat_id = get_chat_id(update)
+    await context.bot.send_message(chat_id=chat_id, text=help_text)
 
+# --- Inline Menu ---
 async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    await query.edit_message_reply_markup(reply_markup=None)
+
     command = query.data
     if command == "bind":
         await bind(update, context)
@@ -140,12 +173,11 @@ async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
     elif command == "share":
         await share(update, context)
     elif command == "help":
-        await help_command(update, context)  # ✅ 修正命名
-    
+        await help_command(update, context)
+
 # --- Entry Point ---
 async def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
-
     await application.bot.delete_webhook(drop_pending_updates=True)
 
     application.add_handler(CommandHandler("start", start))
