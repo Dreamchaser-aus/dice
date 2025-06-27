@@ -82,7 +82,7 @@ def bind_telegram():
         f"✅ 您已成功绑定手机号：{phone}\n\n"
         f"🎮 请前往游戏页面输入该手机号以进入游戏\n"
         f"⚠️ 登录时建议输入格式为：{clean_phone}\n\n"
-        f"👉 进入游戏：https://yourgame.com/"
+        f"👉 进入游戏：https://t.me/mingameh5_bot/dicegame"
     )
     send_telegram_message(user_id, login_msg)
 
