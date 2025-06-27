@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🎲 骰子对战</title>
   <style>
     body {
@@ -54,7 +54,7 @@
       width: 200px;
       height: 200px;
       transform-style: preserve-3d;
-      transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 2s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
     }
 
@@ -173,24 +173,16 @@ const faceRotation = {
   6: [0, 180]
 };
 
-const currentAngles = {
-  "user-dice": [0, 0],
-  "bot-dice": [0, 0]
-};
-
 function animateDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-  const [targetX, targetY] = faceRotation[targetFace];
+  const [faceX, faceY] = faceRotation[targetFace];
 
-  const extraX = 360 * (3 + Math.floor(Math.random() * 2));
-  const extraY = 360 * (3 + Math.floor(Math.random() * 2));
+  // 每次随机 3 ~ 6 圈
+  const rotateX = faceX + 360 * (3 + Math.floor(Math.random() * 4));
+  const rotateY = faceY + 360 * (3 + Math.floor(Math.random() * 4));
 
-  const finalX = targetX + extraX;
-  const finalY = targetY + extraY;
-
-  dice.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
-
-  currentAngles[diceId] = [targetX, targetY];
+  dice.style.transition = 'transform 2s cubic-bezier(0.22, 1, 0.36, 1)';
+  dice.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
 }
 
 async function roll() {
