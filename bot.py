@@ -37,11 +37,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🎲 欢迎使用骰子游戏 Bot！请选择一个操作：", reply_markup=markup)
     
-# --- Command: /bind ---
 async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    target = update.callback_query.message if update.callback_query else update.message
     contact_button = KeyboardButton("📱 发送手机号", request_contact=True)
     markup = ReplyKeyboardMarkup([[contact_button]], resize_keyboard=True, one_time_keyboard=True)
-    await update.message.reply_text("请点击下方按钮发送手机号完成绑定", reply_markup=markup)
+    await target.reply_text("请点击下方按钮发送手机号完成绑定", reply_markup=markup)
 
 # --- Contact Handler ---
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
