@@ -27,7 +27,6 @@
       height: 100px;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 1s ease;
     }
 
     .face {
@@ -123,6 +122,33 @@ const faceRotation = {
   6: "rotateX(0deg) rotateY(180deg)",
 };
 
+// 模拟掷骰动画：快速旋转后缓慢停下
+function animateDice(diceId, targetFace) {
+  const dice = document.getElementById(diceId);
+  let rotationX = 0;
+  let rotationY = 0;
+  let speed = 30;
+
+  const interval = setInterval(() => {
+    rotationX += speed;
+    rotationY += speed;
+    dice.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+    speed *= 0.9;
+
+    if (speed < 1) {
+      clearInterval(interval);
+      // 最终定位到目标面
+      dice.style.transition = 'transform 0.6s ease-out';
+      dice.style.transform = faceRotation[targetFace];
+
+      // 恢复 transition 设置
+      setTimeout(() => {
+        dice.style.transition = '';
+      }, 600);
+    }
+  }, 30);
+}
+
 async function roll() {
   const res = await fetch("/dice/play", { method: "POST" });
 
@@ -134,8 +160,8 @@ async function roll() {
 
   const data = await res.json();
 
-  document.getElementById("user-dice").style.transform = faceRotation[data.user];
-  document.getElementById("bot-dice").style.transform = faceRotation[data.bot];
+  animateDice("user-dice", data.user);
+  animateDice("bot-dice", data.bot);
   document.getElementById("result").textContent = data.message;
 
   const remainingEl = document.getElementById("remaining");
