@@ -72,6 +72,11 @@ async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for i, (name, pts) in enumerate(rows, 1):
         msg += f"{i}. {name or '匿名'} - {pts} 分\n"
     await update.message.reply_text(msg)
+    
+async def share(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    invite_link = f"https://dice-production-1f4e.up.railway.app/bind?inviter={user_id}"
+    await update.message.reply_text(f"📨 分享你的邀请链接给好友：\n{invite_link}")    
 
 # --- Entry Point ---
 async def main():
@@ -79,6 +84,7 @@ async def main():
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("bind", bind))
+    application.add_handler(CommandHandler("share", share))
     application.add_handler(MessageHandler(filters.CONTACT, contact_handler))
     application.add_handler(CommandHandler("rank", show_rank))
 
