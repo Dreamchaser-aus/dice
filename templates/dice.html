@@ -95,7 +95,15 @@
       margin-top: 15px;
       color: #333;
     }
-  </style>
+  
+    .score {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #444;
+    }
+    </style>
+    
 </head>
 <body>
 
@@ -104,6 +112,7 @@
 <div class="dice-box">
   <div class="dice-container-wrapper">
     <div class="label">👤 玩家</div>
+    
     <div class="dice-container">
       <div class="dice" id="user-dice">
         <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
@@ -114,6 +123,7 @@
         <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
       </div>
     </div>
+    <div class="score" id="user-score">点数：-</div>
   </div>
 
   <div class="dice-container-wrapper">
@@ -128,6 +138,7 @@
         <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
       </div>
     </div>
+    <div class="score" id="bot-score">点数：-</div>
   </div>
 </div>
 
@@ -230,6 +241,8 @@ async function roll() {
   botSpin("bot-dice", data.bot);
 
   document.getElementById("result").textContent = data.message;
+  document.getElementById("user-score").textContent = "点数：" + data.user;
+  document.getElementById("bot-score").textContent = "点数：" + data.bot;
 
   const remainingEl = document.getElementById("remaining");
   let remaining = parseInt(remainingEl.textContent);
