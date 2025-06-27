@@ -10,23 +10,25 @@
       padding: 40px;
       background: #f0f0f0;
     }
-    h1 {
-      margin-bottom: 30px;
-    }
 
     .dice-box {
       display: flex;
       justify-content: center;
-      gap: 40px;
+      gap: 80px;
       perspective: 1000px;
       margin-bottom: 20px;
+      height: 150px;
+      position: relative;
     }
 
     .dice {
       width: 100px;
       height: 100px;
-      position: relative;
+      position: absolute;
       transform-style: preserve-3d;
+      top: 0;
+      left: 0;
+      transition: transform 0.5s ease-out;
     }
 
     .face {
@@ -54,7 +56,7 @@
     .bottom { transform: rotateX( -90deg) translateZ(50px); }
 
     .btn {
-      margin-top: 20px;
+      margin-top: 30px;
       padding: 12px 30px;
       font-size: 18px;
       border: none;
@@ -62,11 +64,6 @@
       color: white;
       border-radius: 8px;
       cursor: pointer;
-    }
-
-    .btn:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
     }
 
     .result {
@@ -85,8 +82,8 @@
 
 <h1>🎲 骰子对战</h1>
 
-<div class="dice-box">
-  <div class="dice" id="user-dice">
+<div class="dice-box" id="dice-box">
+  <div class="dice" id="user-dice" style="left: 80px;">
     <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
     <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
     <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
@@ -95,7 +92,7 @@
     <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
   </div>
 
-  <div class="dice" id="bot-dice">
+  <div class="dice" id="bot-dice" style="left: 280px;">
     <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
     <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
     <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
@@ -109,7 +106,7 @@
   🎯 今日剩余次数：<span id="remaining">{{ remaining }}</span> / 10
 </div>
 
-<button class="btn" id="roll-btn" onclick="roll()">🎲 投擲骰子</button>
+<button class="btn" onclick="roll()">🎲 投擲骰子</button>
 <div class="result" id="result"></div>
 
 <script>
@@ -122,31 +119,37 @@ const faceRotation = {
   6: "rotateX(0deg) rotateY(180deg)",
 };
 
-// 模拟掷骰动画：快速旋转后缓慢停下
-function animateDice(diceId, targetFace) {
+// 抛物线 + 旋转动画
+function throwDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-  let rotationX = 0;
-  let rotationY = 0;
-  let speed = 30;
+  let x = 0, y = 0, rotation = 0;
+  const height = 100 + Math.random() * 50;
+  const startTime = performance.now();
 
-  const interval = setInterval(() => {
-    rotationX += speed;
-    rotationY += speed;
-    dice.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
-    speed *= 0.9;
+  function animate(time) {
+    const elapsed = time - startTime;
+    const t = Math.min(elapsed / 1000, 1);  // 动画 1 秒结束
 
-    if (speed < 1) {
-      clearInterval(interval);
-      // 最终定位到目标面
-      dice.style.transition = 'transform 0.6s ease-out';
+    // 抛物线位移（模拟 Y 轴跳跃）
+    const offsetY = -4 * height * t * (1 - t);
+    // 旋转角度模拟
+    rotation += 20;
+
+    dice.style.transform = `translateY(${offsetY}px) rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // 落地后设置最终点数
+      dice.style.transition = "transform 0.5s ease-out";
       dice.style.transform = faceRotation[targetFace];
-
-      // 恢复 transition 设置
       setTimeout(() => {
-        dice.style.transition = '';
+        dice.style.transition = "";
       }, 600);
     }
-  }, 30);
+  }
+
+  requestAnimationFrame(animate);
 }
 
 async function roll() {
@@ -160,15 +163,13 @@ async function roll() {
 
   const data = await res.json();
 
-  animateDice("user-dice", data.user);
-  animateDice("bot-dice", data.bot);
+  throwDice("user-dice", data.user);
+  throwDice("bot-dice", data.bot);
   document.getElementById("result").textContent = data.message;
 
   const remainingEl = document.getElementById("remaining");
   let remaining = parseInt(remainingEl.textContent);
-  if (remaining > 0) {
-    remainingEl.textContent = remaining - 1;
-  }
+  if (remaining > 0) remainingEl.textContent = remaining - 1;
   if (remaining - 1 <= 0) {
     document.querySelector("button.btn").disabled = true;
   }
