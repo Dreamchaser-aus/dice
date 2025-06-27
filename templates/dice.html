@@ -53,8 +53,7 @@
       transform-style: preserve-3d;
       top: 20px;
       left: 20px;
-      border-radius: 16px; /* ✅ 添加圆角 */
-      overflow: hidden;     /* 可选，确保子元素不溢出 */
+      border-radius: 16px;
     }
 
     .face {
@@ -66,13 +65,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 16px; /* ✅ 添加圆角 */
+      border-radius: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .face img {
       width: 100%;
       height: 100%;
       object-fit: contain;
+      border-radius: 16px;
     }
 
     .front  { transform: rotateY(   0deg) translateZ(50px); }
@@ -229,4 +230,3 @@ async function roll() {
 
 </body>
 </html>
-
