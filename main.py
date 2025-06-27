@@ -96,9 +96,21 @@ def close_db(exception):
 def index():
     return redirect(url_for("login"))
 
-@app.route("/login")
+@app.route("/login", methods=["POST"])
 def login():
-    return render_template("login.html")
+    phone = request.form.get("phone")
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT telegram_id FROM users WHERE phone = %s", (phone,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if result:
+        telegram_id = result[0]
+        return redirect(f"/game?tid={telegram_id}")  # 传入 telegram_id
+    else:
+        return "该手机号尚未绑定 Telegram，请先在 Bot 中绑定", 403
 
 @app.route("/bind")
 def bind_page():
