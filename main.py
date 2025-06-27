@@ -108,10 +108,26 @@ def login():
 
     if result:
         telegram_id = result[0]
-        return redirect(f"/game?tid={telegram_id}")  # 传入 telegram_id
+        return redirect(f"/game?tid={telegram_id}")
     else:
-        return "该手机号尚未绑定 Telegram，请先在 Bot 中绑定", 403
-
+        return '''
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <script>
+              setTimeout(function() {
+                window.location.href = "https://t.me/mingameh5_bot";
+              }, 3000);
+            </script>
+        </head>
+        <body style="font-family:sans-serif;text-align:center;padding-top:50px;">
+            <h3>该手机号尚未绑定 Telegram</h3>
+            <p>请点击下方按钮前往绑定后再回来游戏</p>
+            <a href="https://t.me/mingameh5_bot" style="display:inline-block;margin-top:20px;padding:10px 20px;background:#0088cc;color:white;text-decoration:none;border-radius:5px;">前往绑定</a>
+        </body>
+        </html>
+        '''
+        
 @app.route("/bind")
 def bind_page():
     return render_template("bind.html")
