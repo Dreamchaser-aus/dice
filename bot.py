@@ -142,6 +142,8 @@ async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
+     await application.bot.delete_webhook(drop_pending_updates=True)
+
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("bind", bind))
     application.add_handler(CommandHandler("share", share))
