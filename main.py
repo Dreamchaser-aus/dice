@@ -99,17 +99,22 @@ def index():
 @app.route("/login", methods=["POST"])
 def login():
     phone = request.form.get("phone")
+    print("[DEBUG] 用户输入手机号:", phone)
+
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT user_id FROM users WHERE phone = %s", (phone,))
     result = cur.fetchone()
+    print("[DEBUG] 数据库查询结果:", result)
     cur.close()
     conn.close()
 
     if result:
-        telegram_id = result[0]
+        user_id = result[0]
+        print("[DEBUG] 跳转至 /dice?uid=", user_id)
         return redirect(f"/dice?uid={user_id}")
     else:
+        print("[DEBUG] 该手机号未绑定 Telegram，跳转至 bot")
         return '''
         <html>
         <head>
