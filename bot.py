@@ -8,6 +8,8 @@ import nest_asyncio
 nest_asyncio.apply()
 
 from dotenv import load_dotenv
+from telegram.ext import CallbackQueryHandler
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -24,10 +26,17 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
-# --- Command: /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🎲 欢迎来到骰子游戏！请输入 /bind 开始绑定手机号。")
-
+    keyboard = [
+        [InlineKeyboardButton("📱 绑定手机号", callback_data="bind")],
+        [InlineKeyboardButton("🏆 查看排行榜", callback_data="rank")],
+        [InlineKeyboardButton("📨 我的邀请", callback_data="invitees")],
+        [InlineKeyboardButton("🔗 获取邀请链接", callback_data="share")],
+        [InlineKeyboardButton("❓ 帮助", callback_data="help")]
+    ]
+    markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("🎲 欢迎使用骰子游戏 Bot！请选择一个操作：", reply_markup=markup)
+    
 # --- Command: /bind ---
 async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact_button = KeyboardButton("📱 发送手机号", request_contact=True)
@@ -112,7 +121,22 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/help - 显示帮助信息\n"
     )
     await update.message.reply_text(help_text)
-    
+
+async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    command = query.data
+    if command == "bind":
+        await bind(update, context)
+    elif command == "rank":
+        await show_rank(update, context)
+    elif command == "invitees":
+        await invitees(update, context)
+    elif command == "share":
+        await share(update, context)
+    elif command == "help":
+        await help_cmd(update, context)
     
 # --- Entry Point ---
 async def main():
@@ -121,6 +145,7 @@ async def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("bind", bind))
     application.add_handler(CommandHandler("share", share))
+    application.add_handler(CallbackQueryHandler(handle_menu_button))
     application.add_handler(MessageHandler(filters.CONTACT, contact_handler))
     application.add_handler(CommandHandler("rank", show_rank))
     application.add_handler(CommandHandler("help", help_command))  # ✅ 注册 /help
