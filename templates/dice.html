@@ -1,26 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>🎲 骰子对战</title>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
-      padding: 40px;
+      padding: 20px;
       background: #f0f0f0;
     }
 
     h1 {
-      font-size: 32px;
+      font-size: 6vw;
       margin-bottom: 30px;
     }
 
     .dice-box {
       display: flex;
       justify-content: center;
-      gap: 60px;
+      flex-wrap: wrap;
+      gap: 5vw;
       margin-bottom: 30px;
     }
 
@@ -32,13 +33,15 @@
 
     .player-label {
       font-weight: bold;
-      font-size: 20px;
-      margin-bottom: 10px;
+      font-size: 4vw;
+      margin-bottom: 1vh;
     }
 
     .dice-container {
-      width: 200px;
-      height: 200px;
+      width: 40vw;
+      height: 40vw;
+      max-width: 200px;
+      max-height: 200px;
       background: #fff;
       border: 3px dashed #aaa;
       border-radius: 12px;
@@ -47,19 +50,19 @@
     }
 
     .dice {
-      width: 100px;
-      height: 100px;
+      width: 50%;
+      height: 50%;
       position: absolute;
+      top: 25%;
+      left: 25%;
       transform-style: preserve-3d;
-      top: 20px;
-      left: 20px;
       border-radius: 16px;
     }
 
     .face {
       position: absolute;
-      width: 100px;
-      height: 100px;
+      width: 100%;
+      height: 100%;
       background: white;
       border: 2px solid #ccc;
       display: flex;
@@ -76,157 +79,91 @@
       border-radius: 16px;
     }
 
-    .front  { transform: rotateY(   0deg) translateZ(50px); }
-    .back   { transform: rotateY( 180deg) translateZ(50px); }
-    .right  { transform: rotateY(  90deg) translateZ(50px); }
-    .left   { transform: rotateY( -90deg) translateZ(50px); }
-    .top    { transform: rotateX(  90deg) translateZ(50px); }
-    .bottom { transform: rotateX( -90deg) translateZ(50px); }
+    .front  { transform: rotateY(   0deg) translateZ(25px); }
+    .back   { transform: rotateY( 180deg) translateZ(25px); }
+    .right  { transform: rotateY(  90deg) translateZ(25px); }
+    .left   { transform: rotateY( -90deg) translateZ(25px); }
+    .top    { transform: rotateX(  90deg) translateZ(25px); }
+    .bottom { transform: rotateX( -90deg) translateZ(25px); }
 
     .dice-score {
       margin-top: 10px;
-      font-size: 18px;
+      font-size: 4vw;
       font-weight: bold;
     }
 
     .btn {
       margin-top: 30px;
       padding: 12px 30px;
-      font-size: 18px;
+      font-size: 5vw;
+      max-width: 300px;
+      width: 80%;
       border: none;
       background: #007bff;
       color: white;
-      border-radius: 8px;
-      cursor: pointer;
+      border-radius: 10px;
     }
 
-    .result {
-      margin-top: 20px;
-      font-size: 24px;
-    }
-
-    #remaining-info {
-      font-size: 18px;
-      margin-top: 15px;
-      color: #333;
+    @media (min-width: 768px) {
+      h1 {
+        font-size: 32px;
+      }
+      .player-label, .dice-score {
+        font-size: 20px;
+      }
+      .btn {
+        font-size: 18px;
+      }
     }
   </style>
 </head>
 <body>
-
-<h1>🎲 骰子对战</h1>
-
-<div class="dice-box">
-  <div class="dice-wrapper">
-    <div class="player-label">🧑 玩家</div>
-    <div class="dice-container">
-      <div class="dice" id="user-dice">
-        <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
-        <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
-        <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
-        <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
-        <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
-        <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
-      </div>
+  <h1>🎲 骰子对战</h1>
+  <div class="dice-box">
+    <div class="dice-wrapper">
+      <div class="player-label">玩家</div>
+      <div class="dice-container" id="player-dice"></div>
+      <div class="dice-score" id="player-score">🎯</div>
     </div>
-    <div class="dice-score">点数：<span id="user-score">0</span></div>
-  </div>
-
-  <div class="dice-wrapper">
-    <div class="player-label">🤖 机器人</div>
-    <div class="dice-container">
-      <div class="dice" id="bot-dice">
-        <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
-        <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
-        <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
-        <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
-        <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
-        <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
-      </div>
+    <div class="dice-wrapper">
+      <div class="player-label">机器人</div>
+      <div class="dice-container" id="bot-dice"></div>
+      <div class="dice-score" id="bot-score">🎯</div>
     </div>
-    <div class="dice-score">点数：<span id="bot-score">0</span></div>
   </div>
-</div>
+  <button class="btn" onclick="rollDice()">掷骰子</button>
 
-<div id="remaining-info">
-  🎯 今日剩余次数：<span id="remaining">{{ remaining }}</span> / 10
-</div>
+  <script>
+    function createDice(containerId, num) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
 
-<button class="btn" onclick="roll()">🎲 投擲骰子</button>
-<div class="result" id="result">等待中...</div>
+      const dice = document.createElement('div');
+      dice.className = 'dice';
 
-<script>
-const faceRotation = {
-  1: [0, 0],
-  2: [90, 0],
-  3: [0, -90],
-  4: [0, 90],
-  5: [-90, 0],
-  6: [0, 180]
-};
+      const faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+      faces.forEach(face => {
+        const f = document.createElement('div');
+        f.className = 'face ' + face;
+        const img = document.createElement('img');
+        img.src = `/static/dice ${num}.png`;
+        f.appendChild(img);
+        dice.appendChild(f);
+      });
 
-const currentAngles = {
-  "user-dice": [0, 0],
-  "bot-dice": [0, 0]
-};
-
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function animateDice(diceId, targetFace) {
-  const dice = document.getElementById(diceId);
-  const [targetX, targetY] = faceRotation[targetFace];
-  const [startX, startY] = currentAngles[diceId];
-  const extraRotate = 360 * (3 + Math.floor(Math.random() * 3));
-  const duration = 1500;
-  const startTime = performance.now();
-
-  function animate(time) {
-    const elapsed = time - startTime;
-    const t = Math.min(elapsed / duration, 1);
-    const eased = easeOutCubic(t);
-
-    const currentX = startX + (targetX + extraRotate - startX) * eased;
-    const currentY = startY + (targetY + extraRotate - startY) * eased;
-
-    dice.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      currentAngles[diceId] = [targetX, targetY];
+      container.appendChild(dice);
     }
-  }
 
-  requestAnimationFrame(animate);
-}
+    function rollDice() {
+      const playerNum = Math.floor(Math.random() * 6) + 1;
+      const botNum = Math.floor(Math.random() * 6) + 1;
 
-async function roll() {
-  const res = await fetch("/dice/play", { method: "POST" });
+      createDice('player-dice', playerNum);
+      createDice('bot-dice', botNum);
 
-  if (res.status === 403) {
-    document.getElementById("result").textContent = "❌ 今日次数已用完";
-    document.querySelector("button.btn").disabled = true;
-    return;
-  }
-
-  const data = await res.json();
-
-  animateDice("user-dice", data.user);
-  animateDice("bot-dice", data.bot);
-  document.getElementById("user-score").textContent = data.user;
-  document.getElementById("bot-score").textContent = data.bot;
-  document.getElementById("result").textContent = data.message;
-
-  const remainingEl = document.getElementById("remaining");
-  let remaining = parseInt(remainingEl.textContent);
-  if (remaining > 0) remainingEl.textContent = remaining - 1;
-  if (remaining - 1 <= 0) {
-    document.querySelector("button.btn").disabled = true;
-  }
-}
-</script>
-
+      document.getElementById('player-score').innerText = `🎯 点数：${playerNum}`;
+      document.getElementById('bot-score').innerText = `🎯 点数：${botNum}`;
+    }
+  </script>
 </body>
 </html>
