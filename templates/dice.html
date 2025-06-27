@@ -140,24 +140,18 @@ const currentAngles = {
   "bot-dice": [0, 0]
 };
 
-// 主动画函数：模拟随机旋转 + 抛物线 + 最后自然落面
 function animateDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-
-  // 目标角度
   const [targetX, targetY] = faceRotation[targetFace];
-
-  // 初始角度
   const [startX, startY] = currentAngles[diceId];
 
-  // 随机初始平移
-  const baseX = 10 + Math.random() * 20;
-  const shakeX = 10 + Math.random() * 10;
+  // 随机平移轨迹（在整个容器范围内）
+  const offsetX = 20 + Math.random() * 60;
+  const offsetY = 20 + Math.random() * 60;
+  const jitterX = 10 + Math.random() * 10;
+  const jitterY = 10 + Math.random() * 10;
 
-  // 随机总旋转圈数
   const extraRotate = 360 * (3 + Math.floor(Math.random() * 3)); // 3~5圈
-
-  // 动画时长
   const duration = 1500;
   const startTime = performance.now();
 
@@ -166,20 +160,24 @@ function animateDice(diceId, targetFace) {
     const t = Math.min(elapsed / duration, 1);
     const eased = easeOutCubic(t);
 
-    // 抛物线上下位移
-    const yOffset = -4 * 40 * t * (1 - t); // 顶部高度可调
-    const jitter = Math.sin(t * Math.PI * 6) * shakeX * (1 - t); // 横向抖动衰减
+    const posX = offsetX + Math.sin(t * Math.PI * 3) * jitterX * (1 - t);
+    const posY = offsetY - 4 * 40 * t * (1 - t) + Math.sin(t * Math.PI * 5) * jitterY * (1 - t);
 
-    // 当前旋转角度（随机方向 + 最终落点方向）
     const currentX = startX + (targetX + extraRotate - startX) * eased;
     const currentY = startY + (targetY + extraRotate - startY) * eased;
 
-    // 设置样式
-    dice.style.transform = `translate(${baseX + jitter}px, ${yOffset}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
+    dice.style.transform = `translate(${posX}px, ${posY}px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
 
     if (t < 1) {
       requestAnimationFrame(animate);
     } else {
+      currentAngles[diceId] = [targetX, targetY];
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
       // 动画完成，更新记录角度（保留最终状态）
       currentAngles[diceId] = [targetX, targetY];
     }
