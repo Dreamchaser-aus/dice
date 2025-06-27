@@ -26,7 +26,7 @@ def auto_reset_daily_plays():
     with get_conn() as conn, conn.cursor() as c:
         c.execute("""
             UPDATE users
-            SET plays = 10,
+            SET plays = 0,
                 daily_reset = %s
             WHERE daily_reset IS NULL OR daily_reset < %s
         """, (today, today))
