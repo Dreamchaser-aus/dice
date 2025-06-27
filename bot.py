@@ -42,8 +42,17 @@ def get_chat_id(update: Update):
         return update.callback_query.message.chat_id
     return None
 
-# --- Command: /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # 处理 inviter 参数（来自 t.me/bot?start=inviter_123456）
+    if context.args and context.args[0].startswith("inviter_"):
+        inviter_id = context.args[0].split("_")[1]
+        user_id = update.effective_user.id
+
+        # 存储 inviter_id -> 可保存到数据库或 session 映射（例如 Redis/session/临时表）
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("UPDATE users SET invited_by = %s WHERE user_id = %s AND invited_by IS NULL", (inviter_id, user_id))
+            conn.commit()
+
     keyboard = [
         [InlineKeyboardButton("📱 绑定手机号", callback_data="bind")],
         [InlineKeyboardButton("🏆 查看排行榜", callback_data="rank")],
@@ -112,7 +121,7 @@ async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def share(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = get_chat_id(update)
     user_id = get_user_id(update)
-    invite_link = f"https://dice-production-1f4e.up.railway.app/bind?inviter={user_id}"
+    invite_link = f"https://t.me/{context.bot.username}?start=inviter_{user_id}"
     await context.bot.send_message(chat_id=chat_id, text=f"📨 分享你的邀请链接给好友：\n{invite_link}")
 
 # --- Command: invitees ---
