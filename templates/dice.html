@@ -129,50 +129,39 @@ const faceRotation = {
   6: [0, 180]
 };
 
-// 缓动函数（easeOutCubic）
+// 每个骰子的当前角度记录
+const currentAngles = {
+  "user-dice": [0, 0],
+  "bot-dice": [0, 0]
+};
+
+// 缓动函数
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-// 获取当前旋转角度（从 transform 属性中解析）
-function getCurrentRotation(dice) {
-  const style = window.getComputedStyle(dice);
-  const transform = style.transform;
-  if (!transform || transform === 'none') return [0, 0];
-
-  const values = transform.match(/matrix3d\(([^)]+)\)/);
-  if (!values) return [0, 0];
-
-  const matrix = values[1].split(',').map(parseFloat);
-
-  // 提取 X, Y 旋转角度（简化版）
-  const sinX = -matrix[9];
-  const rotX = Math.asin(sinX);
-  const rotY = Math.atan2(matrix[8], matrix[10]);
-
-  return [rotX * (180 / Math.PI), rotY * (180 / Math.PI)];
-}
-
-// 平滑从当前角度过渡到目标角度
 function smoothRotateTo(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-  const [endX, endY] = faceRotation[targetFace];
+  const [startX, startY] = currentAngles[diceId];
+  const [targetX, targetY] = faceRotation[targetFace];
 
-  const [startX, startY] = getCurrentRotation(dice);
-  const totalDuration = 1000; // ms
+  const totalDuration = 1200;
   const startTime = performance.now();
 
   function animate(time) {
     const t = Math.min((time - startTime) / totalDuration, 1);
     const eased = easeOutCubic(t);
 
-    const currentX = startX + (endX - startX) * eased;
-    const currentY = startY + (endY - startY) * eased;
+    const currentX = startX + (targetX - startX) * eased;
+    const currentY = startY + (targetY - startY) * eased;
 
     dice.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
 
     if (t < 1) {
       requestAnimationFrame(animate);
+    } else {
+      // 动画完成后记录新角度为下次起点
+      currentAngles[diceId] = [targetX, targetY];
     }
   }
 
