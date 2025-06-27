@@ -1,11 +1,17 @@
+<!-- login.html -->
 <!DOCTYPE html>
-<html>
-<head><title>登录</title></head>
-<body style="text-align:center">
-<h1>登录以开始游戏</h1>
-<form action="/auth" method="POST">
-<input type="text" name="user_id" placeholder="请输入 Telegram 用户 ID" required />
-<button type="submit">进入游戏</button>
-</form>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>进入游戏</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:sans-serif;">
+  <h2>请输入手机号进入游戏</h2>
+  <form method="post" action="/login">
+    <input type="tel" name="phone" placeholder="请输入手机号" required style="padding:10px;font-size:16px;" />
+    <br/><br/>
+    <button type="submit" style="padding:10px 20px;font-size:16px;">进入游戏</button>
+  </form>
 </body>
 </html>
