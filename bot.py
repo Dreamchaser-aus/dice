@@ -51,7 +51,7 @@ async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Contact Handler ---
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.contact
-    user_id = update.message.from_user.id
+    user_id = update.callback_query.from_user.id  # ✅ 正确方式
     phone = contact.phone_number
 
     # 存入数据库
@@ -88,13 +88,13 @@ async def show_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
     
 async def share(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    user_id = update.callback_query.from_user.id  # ✅ 正确方式
     invite_link = f"https://dice-production-1f4e.up.railway.app/bind?inviter={user_id}"
     await update.message.reply_text(f"📨 分享你的邀请链接给好友：\n{invite_link}")   
     
 # --- Command: /invitees ---
 async def invitees(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    user_id = update.callback_query.from_user.id  # ✅ 正确方式
 
     with get_conn() as conn, conn.cursor() as c:
         c.execute("""
