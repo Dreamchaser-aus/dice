@@ -20,8 +20,8 @@
     .dice-box {
       display: flex;
       justify-content: center;
-      gap: 5vw;
       flex-wrap: wrap;
+      gap: 5vw;
       margin-bottom: 30px;
     }
 
@@ -40,53 +40,48 @@
     }
 
     .dice-container {
-      width: 40vw;
-      height: 40vw;
-      max-width: 200px;
-      max-height: 200px;
+      width: 200px;
+      height: 200px;
       background: #fff;
       border: 3px dashed #aaa;
       border-radius: 12px;
       position: relative;
       overflow: hidden;
+      perspective: 1000px;
     }
 
     .dice {
-      width: 50%;
-      height: 50%;
-      position: absolute;
+      width: 200px;
+      height: 200px;
       transform-style: preserve-3d;
-      top: 25%;
-      left: 25%;
-      border-radius: 16px;
+      transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+      will-change: transform;
     }
 
     .face {
       position: absolute;
-      width: 100%;
-      height: 100%;
+      width: 200px;
+      height: 200px;
       background: white;
-      border: 2px solid #ccc;
+      border: 1px solid #ccc;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
 
     .face img {
-      width: 100%;
-      height: 100%;
+      width: 90%;
+      height: 90%;
       object-fit: contain;
-      border-radius: 16px;
     }
 
-    .front  { transform: rotateY(   0deg) translateZ(25px); }
-    .back   { transform: rotateY( 180deg) translateZ(25px); }
-    .right  { transform: rotateY(  90deg) translateZ(25px); }
-    .left   { transform: rotateY( -90deg) translateZ(25px); }
-    .top    { transform: rotateX(  90deg) translateZ(25px); }
-    .bottom { transform: rotateX( -90deg) translateZ(25px); }
+    .front  { transform: rotateY(   0deg) translateZ(100px); }
+    .back   { transform: rotateY( 180deg) translateZ(100px); }
+    .right  { transform: rotateY(  90deg) translateZ(100px); }
+    .left   { transform: rotateY( -90deg) translateZ(100px); }
+    .top    { transform: rotateX(  90deg) translateZ(100px); }
+    .bottom { transform: rotateX( -90deg) translateZ(100px); }
 
     .dice-score {
       margin-top: 10px;
@@ -119,9 +114,9 @@
     }
 
     @media (min-width: 768px) {
-      h1 { font-size: 32px; }
-      .player-label, .dice-score, .result, #remaining-info { font-size: 18px; }
-      .btn { font-size: 18px; }
+      h1, .player-label, .dice-score, .btn, .result, #remaining-info {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
@@ -183,36 +178,19 @@ const currentAngles = {
   "bot-dice": [0, 0]
 };
 
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
 function animateDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
   const [targetX, targetY] = faceRotation[targetFace];
-  const [startX, startY] = currentAngles[diceId];
-  const extraRotate = 360 * (3 + Math.floor(Math.random() * 3));
-  const duration = 1500;
-  const startTime = performance.now();
 
-  function animate(time) {
-    const elapsed = time - startTime;
-    const t = Math.min(elapsed / duration, 1);
-    const eased = easeOutCubic(t);
+  const extraX = 360 * (3 + Math.floor(Math.random() * 2));
+  const extraY = 360 * (3 + Math.floor(Math.random() * 2));
 
-    const currentX = startX + (targetX + extraRotate - startX) * eased;
-    const currentY = startY + (targetY + extraRotate - startY) * eased;
+  const finalX = targetX + extraX;
+  const finalY = targetY + extraY;
 
-    dice.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
+  dice.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
 
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      currentAngles[diceId] = [targetX, targetY];
-    }
-  }
-
-  requestAnimationFrame(animate);
+  currentAngles[diceId] = [targetX, targetY];
 }
 
 async function roll() {
@@ -241,6 +219,5 @@ async function roll() {
 }
 </script>
 
-  
 </body>
 </html>
