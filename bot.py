@@ -38,10 +38,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎲 欢迎使用骰子游戏 Bot！请选择一个操作：", reply_markup=markup)
     
 async def bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    target = update.callback_query.message if update.callback_query else update.message
+    if update.callback_query:
+        await update.callback_query.answer()
+        chat_id = update.callback_query.message.chat_id
+    else:
+        chat_id = update.message.chat_id
+
     contact_button = KeyboardButton("📱 发送手机号", request_contact=True)
     markup = ReplyKeyboardMarkup([[contact_button]], resize_keyboard=True, one_time_keyboard=True)
-    await target.reply_text("请点击下方按钮发送手机号完成绑定", reply_markup=markup)
+    await context.bot.send_message(chat_id=chat_id, text="请点击下方按钮发送手机号完成绑定", reply_markup=markup)
 
 # --- Contact Handler ---
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -125,7 +130,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     command = query.data
     if command == "bind":
         await bind(update, context)
@@ -136,22 +140,23 @@ async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
     elif command == "share":
         await share(update, context)
     elif command == "help":
-        await help_cmd(update, context)
+        await help_command(update, context)  # ✅ 修正命名
     
 # --- Entry Point ---
 async def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-     await application.bot.delete_webhook(drop_pending_updates=True)
+    await application.bot.delete_webhook(drop_pending_updates=True)
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("bind", bind))
     application.add_handler(CommandHandler("share", share))
+    application.add_handler(CommandHandler("rank", show_rank))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("invitees", invitees))
+
     application.add_handler(CallbackQueryHandler(handle_menu_button))
     application.add_handler(MessageHandler(filters.CONTACT, contact_handler))
-    application.add_handler(CommandHandler("rank", show_rank))
-    application.add_handler(CommandHandler("help", help_command))  # ✅ 注册 /help
-    application.add_handler(CommandHandler("invitees", invitees))    
 
     await application.run_polling()
 
