@@ -14,11 +14,18 @@
     .dice-box {
       display: flex;
       justify-content: center;
-      gap: 80px;
-      perspective: 1000px;
-      margin-bottom: 20px;
-      height: 150px;
+      gap: 60px;
+      margin-bottom: 30px;
+    }
+
+    .dice-container {
+      width: 140px;
+      height: 140px;
+      background: #fff;
+      border: 3px dashed #aaa;
+      border-radius: 12px;
       position: relative;
+      overflow: hidden;
     }
 
     .dice {
@@ -26,9 +33,8 @@
       height: 100px;
       position: absolute;
       transform-style: preserve-3d;
-      top: 0;
-      left: 0;
-      transition: transform 0.5s ease-out;
+      top: 20px;
+      left: 20px;
     }
 
     .face {
@@ -82,23 +88,27 @@
 
 <h1>🎲 骰子对战</h1>
 
-<div class="dice-box" id="dice-box">
-  <div class="dice" id="user-dice" style="left: 80px;">
-    <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
-    <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
-    <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
-    <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
-    <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
-    <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
+<div class="dice-box">
+  <div class="dice-container">
+    <div class="dice" id="user-dice">
+      <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
+      <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
+      <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
+      <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
+      <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
+      <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
+    </div>
   </div>
 
-  <div class="dice" id="bot-dice" style="left: 280px;">
-    <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
-    <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
-    <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
-    <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
-    <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
-    <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
+  <div class="dice-container">
+    <div class="dice" id="bot-dice">
+      <div class="face front"><img src="{{ url_for('static', filename='dice 1.png') }}" alt="1" /></div>
+      <div class="face back"><img src="{{ url_for('static', filename='dice 6.png') }}" alt="6" /></div>
+      <div class="face right"><img src="{{ url_for('static', filename='dice 3.png') }}" alt="3" /></div>
+      <div class="face left"><img src="{{ url_for('static', filename='dice 4.png') }}" alt="4" /></div>
+      <div class="face top"><img src="{{ url_for('static', filename='dice 5.png') }}" alt="5" /></div>
+      <div class="face bottom"><img src="{{ url_for('static', filename='dice 2.png') }}" alt="2" /></div>
+    </div>
   </div>
 </div>
 
@@ -119,34 +129,31 @@ const faceRotation = {
   6: "rotateX(0deg) rotateY(180deg)",
 };
 
-// 抛物线 + 旋转动画
+// 抛物线 + 旋转 + 独立容器内运动
 function throwDice(diceId, targetFace) {
   const dice = document.getElementById(diceId);
-  let x = 0, y = 0, rotation = 0;
-  const height = 100 + Math.random() * 50;
-  const startTime = performance.now();
+  let startTime = performance.now();
+  const startX = 10 + Math.random() * 20;
+  const amplitude = 40 + Math.random() * 30;
+  let rotation = 0;
 
   function animate(time) {
-    const elapsed = time - startTime;
-    const t = Math.min(elapsed / 1000, 1);  // 动画 1 秒结束
-
-    // 抛物线位移（模拟 Y 轴跳跃）
-    const offsetY = -4 * height * t * (1 - t);
-    // 旋转角度模拟
-    rotation += 20;
-
-    dice.style.transform = `translateY(${offsetY}px) rotateX(${rotation}deg) rotateY(${rotation}deg)`;
-
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      // 落地后设置最终点数
-      dice.style.transition = "transform 0.5s ease-out";
+    const elapsed = (time - startTime) / 1000; // 秒
+    if (elapsed >= 1) {
+      dice.style.transition = "transform 0.4s ease-out";
       dice.style.transform = faceRotation[targetFace];
       setTimeout(() => {
         dice.style.transition = "";
-      }, 600);
+      }, 500);
+      return;
     }
+
+    const yOffset = -4 * amplitude * elapsed * (1 - elapsed);
+    rotation += 30;
+
+    dice.style.transform = `translate(${startX}px, ${yOffset}px) rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+
+    requestAnimationFrame(animate);
   }
 
   requestAnimationFrame(animate);
